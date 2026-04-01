@@ -1,0 +1,1686 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lexa | P&L Operativa</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#0a0a0c;color:#f4f4f5;min-height:100vh}
+.glass-card{background:rgba(23,23,26,.82);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.10);border-radius:1rem}
+.gradient-text{background:linear-gradient(90deg,#6366f1,#a855f7);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.chip{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:9999px;padding:6px 16px;font-size:13px;cursor:pointer;color:#f4f4f5;transition:background .15s}
+.chip:hover{background:rgba(255,255,255,.12)}
+.chip.active{background:rgba(99,102,241,.18);border-color:rgba(99,102,241,.55);color:#a5b4fc;font-weight:600}
+input[type=file]{display:none}
+
+/* ── P&L Table ── */
+.pl-table{width:100%;border-collapse:collapse;font-size:13px}
+.pl-table th{padding:10px 12px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);font-weight:600;border-bottom:1px solid rgba(255,255,255,.07)}
+.pl-table th.num{text-align:right}
+.pl-row td{padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.04);transition:background .1s}
+.pl-row:hover td{background:rgba(255,255,255,.03)}
+.pl-row.section-header td{padding:14px 12px 6px;font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);font-weight:700;border-bottom:none;background:transparent}
+.pl-row.section-header:hover td{background:transparent}
+.pl-row.subtotal td{border-top:1px solid rgba(255,255,255,.12);border-bottom:1px solid rgba(255,255,255,.12);font-weight:700;font-size:14px}
+.pl-row.grand td{border-top:2px solid rgba(99,102,241,.5);font-weight:700;font-size:15px;color:#fff}
+.pl-row.detail td{color:rgba(255,255,255,.6);font-size:12px}
+.pl-row.detail td:first-child{padding-left:28px}
+.pl-row.warning td{background:rgba(251,191,36,.04)}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.neg{color:#f87171}
+.pos{color:#34d399}
+.neutral{color:rgba(255,255,255,.85)}
+.pct-badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600;margin-left:6px;vertical-align:middle}
+.pct-badge.green{background:rgba(52,211,153,.12);color:#34d399}
+.pct-badge.amber{background:rgba(251,191,36,.12);color:#fbbf24}
+.pct-badge.red{background:rgba(248,113,113,.12);color:#f87171}
+.expand-btn{background:none;border:none;cursor:pointer;color:rgba(255,255,255,.3);font-size:11px;padding:0 4px;transition:color .15s;line-height:1}
+.expand-btn:hover{color:rgba(255,255,255,.7)}
+
+/* ── KPI cards ── */
+.kpi-card{padding:20px 24px;position:relative;overflow:hidden}
+.kpi-card .kpi-label{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.4);font-weight:600}
+.kpi-card .kpi-value{font-size:26px;font-weight:700;letter-spacing:-.02em;margin-top:6px;line-height:1.1}
+.kpi-card .kpi-sub{font-size:11px;color:rgba(255,255,255,.4);margin-top:6px}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;width:3px;height:100%;border-radius:0 2px 2px 0}
+.kpi-card.indigo::before{background:#6366f1}
+.kpi-card.emerald::before{background:#10b981}
+.kpi-card.amber::before{background:#f59e0b}
+.kpi-card.purple::before{background:#a855f7}
+.kpi-card.pink::before{background:#ec4899}
+
+/* ── Validation banner ── */
+.val-banner{border-radius:.75rem;padding:10px 16px;font-size:12px;display:flex;align-items:center;gap:10px}
+.val-banner.ok{background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.25);color:#6ee7b7}
+.val-banner.warn{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);color:#fde68a}
+.val-banner.err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);color:#fca5a5}
+
+/* ── Inline period filter (header-integrated) ── */
+#periodFilter{display:none;align-items:center;gap:8px;flex-wrap:nowrap}
+#periodFilter.visible{display:flex}
+.period-sep{width:1px;height:16px;background:rgba(255,255,255,.1);flex-shrink:0}
+/* Shared ghost-select appearance for year + month triggers */
+.ghost-select{height:28px;padding:0 28px 0 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f4f4f5;font-size:12px;font-family:inherit;outline:none;cursor:pointer;transition:border-color .15s;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.35)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 9px center}
+.ghost-select:hover{border-color:rgba(255,255,255,.25)}
+.ghost-select:focus{border-color:rgba(99,102,241,.55)}
+.ghost-select option{background:#17171a;color:#f4f4f5}
+/* Month dropdown custom component */
+#monthDropWrap{position:relative}
+#monthTrigger{height:28px;padding:0 28px 0 10px;border-radius:6px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);color:#f4f4f5;font-size:12px;font-family:inherit;cursor:pointer;display:flex;align-items:center;white-space:nowrap;user-select:none;gap:6px;transition:border-color .15s;min-width:96px;position:relative}
+#monthTrigger::after{content:'';position:absolute;right:9px;top:50%;transform:translateY(-50%);width:10px;height:6px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.35)' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-size:contain}
+#monthTrigger:hover{border-color:rgba(255,255,255,.25)}
+#monthTrigger.open{border-color:rgba(99,102,241,.55);background:rgba(99,102,241,.08)}
+#monthTrigger.filtered{border-color:rgba(99,102,241,.4);color:#a5b4fc}
+#monthPanel{display:none;position:absolute;top:calc(100% + 6px);right:0;width:200px;background:#1a1a1e;border:1px solid rgba(255,255,255,.12);border-radius:8px;box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:200;overflow:hidden}
+#monthPanel.open{display:block}
+/* "Año completo" row */
+.mp-full{display:flex;align-items:center;gap:10px;padding:9px 12px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.55);border-bottom:1px solid rgba(255,255,255,.07);transition:background .1s}
+.mp-full:hover{background:rgba(255,255,255,.05);color:#f4f4f5}
+.mp-full.active{color:#a5b4fc}
+/* Month rows */
+.mp-row{display:flex;align-items:center;gap:10px;padding:7px 12px;cursor:pointer;font-size:12px;color:rgba(255,255,255,.55);transition:background .1s}
+.mp-row:hover{background:rgba(255,255,255,.05);color:#f4f4f5}
+.mp-row.checked{color:#f4f4f5}
+/* Checkbox mark */
+.mp-check{width:14px;height:14px;border-radius:3px;border:1px solid rgba(255,255,255,.2);flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:background .12s,border-color .12s}
+.mp-row.checked .mp-check,.mp-full.active .mp-check{background:rgba(99,102,241,.7);border-color:rgba(99,102,241,.9)}
+.mp-check-icon{display:none;width:8px;height:8px}
+.mp-row.checked .mp-check-icon,.mp-full.active .mp-check-icon{display:block}
+#activePeriodBadge{display:none;font-size:10px;font-weight:600;letter-spacing:.04em;padding:2px 8px;border-radius:4px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;white-space:nowrap}
+#activePeriodBadge.visible{display:inline-block}
+
+/* ── Source chip ── */
+#dataSourceChip{font-size:11px;padding:3px 10px;border-radius:999px;background:rgba(99,102,241,.15);border:1px solid rgba(99,102,241,.3);color:#a5b4fc;font-weight:600}
+
+/* ── Upload zone ── */
+.upload-zone{border:2px dashed rgba(255,255,255,.15);border-radius:1rem;padding:48px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s}
+.upload-zone:hover,.upload-zone.drag{border-color:rgba(99,102,241,.5);background:rgba(99,102,241,.05)}
+
+/* ── Waterfall bar ── */
+.wf-bar{display:flex;align-items:center;gap:8px;padding:6px 0}
+.wf-label{font-size:12px;color:rgba(255,255,255,.6);width:180px;flex-shrink:0;text-align:right}
+.wf-track{flex:1;position:relative;height:22px}
+.wf-fill{position:absolute;height:100%;border-radius:3px;transition:width .4s ease}
+.wf-val{font-size:12px;font-variant-numeric:tabular-nums;font-weight:600;margin-left:6px;white-space:nowrap}
+
+/* ── Layout ── */
+.max-w-7xl{max-width:80rem;margin:0 auto}
+.grid-kpi{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+@media(max-width:1024px){.grid-kpi{grid-template-columns:repeat(3,1fr)}.grid-2{grid-template-columns:1fr}}
+@media(max-width:640px){.grid-kpi{grid-template-columns:1fr 1fr}}
+.space-y-6>*+*{margin-top:24px}
+.space-y-8>*+*{margin-top:32px}
+.flex{display:flex}.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:8px}.gap-3{gap:12px}.gap-4{gap:16px}.flex-wrap{flex-wrap:wrap}
+.overflow-x-auto{overflow-x:auto}
+.hidden{display:none}
+.p-6{padding:24px}.p-7{padding:28px}.mb-8{margin-bottom:32px}.mt-2{margin-top:8px}.mt-4{margin-top:16px}.mt-6{margin-top:24px}
+.text-gray-400{color:rgba(255,255,255,.4)}.text-gray-500{color:rgba(255,255,255,.3)}
+.text-sm{font-size:14px}.text-xs{font-size:12px}.text-lg{font-size:18px}.text-xl{font-size:20px}
+.text-2xl{font-size:24px}.text-3xl{font-size:30px}.text-4xl{font-size:36px}
+.font-bold{font-weight:700}.font-semibold{font-weight:600}.font-medium{font-weight:500}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5rem;padding:8px 12px;font-size:13px;color:#f4f4f5;outline:none;cursor:pointer}
+/* ── Fase 2 tag pills ── */
+.f2-dim1{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(251,191,36,.15);color:#fbbf24;margin-left:4px}
+.f2-dim2{font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(99,102,241,.15);color:#a5b4fc;margin-left:4px}
+/* ── Progress indicator ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(10,10,12,.8);display:flex;align-items:center;justify-content:center;z-index:100;backdrop-filter:blur(4px)}
+.loading-spinner{width:40px;height:40px;border:3px solid rgba(99,102,241,.3);border-top-color:#6366f1;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* BU View */
+#valToggleBtn{display:none!important}
+#buViewBtn.bu-active{ background:rgba(99,102,241,.3); border-color:rgba(99,102,241,.6); color:#a5b4fc; }
+.pl-table th.bu-partnership{ color:#818cf8; }
+.pl-table th.bu-prs{ color:#34d399; }
+.pl-table th.bu-corporativo{ color:#94a3b8; }
+</style>
+</head>
+<body style="padding:24px 32px">
+
+<!-- ═══ HEADER ═══ -->
+<header class="max-w-7xl mb-8">
+  <div class="flex items-center justify-between flex-wrap gap-4">
+    <div>
+      <h1 class="text-4xl font-bold" style="letter-spacing:-.02em">Lexa</h1>
+      <p class="text-gray-400 mt-2 text-lg">P&amp;L Operativa <span class="gradient-text font-semibold">FP&amp;A</span></p>
+    </div>
+    <div class="flex items-center gap-3 flex-wrap">
+      <span id="dataSourceChip" class="hidden">Fuente: —</span>
+      <!-- Inline period filter — shown after data load -->
+      <div id="periodFilter">
+        <select id="yearSelectInline" class="ghost-select" onchange="handleYearChange(this.value)">
+          <option value="__all__">Todos</option>
+        </select>
+        <div class="period-sep"></div>
+        <!-- Month multi-select dropdown -->
+        <div id="monthDropWrap">
+          <div id="monthTrigger" onclick="toggleMonthPanel()">
+            <span id="monthTriggerLabel">Año completo</span>
+          </div>
+          <div id="monthPanel">
+            <div class="mp-full active" onclick="selectFullYear()">
+              <div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+              <span>Año completo</span>
+            </div>
+            <div class="mp-row checked" data-m="1"  onclick="toggleMonthRow(1)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Enero</span></div>
+            <div class="mp-row checked" data-m="2"  onclick="toggleMonthRow(2)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Febrero</span></div>
+            <div class="mp-row checked" data-m="3"  onclick="toggleMonthRow(3)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Marzo</span></div>
+            <div class="mp-row checked" data-m="4"  onclick="toggleMonthRow(4)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Abril</span></div>
+            <div class="mp-row checked" data-m="5"  onclick="toggleMonthRow(5)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Mayo</span></div>
+            <div class="mp-row checked" data-m="6"  onclick="toggleMonthRow(6)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Junio</span></div>
+            <div class="mp-row checked" data-m="7"  onclick="toggleMonthRow(7)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Julio</span></div>
+            <div class="mp-row checked" data-m="8"  onclick="toggleMonthRow(8)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Agosto</span></div>
+            <div class="mp-row checked" data-m="9"  onclick="toggleMonthRow(9)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Septiembre</span></div>
+            <div class="mp-row checked" data-m="10" onclick="toggleMonthRow(10)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Octubre</span></div>
+            <div class="mp-row checked" data-m="11" onclick="toggleMonthRow(11)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Noviembre</span></div>
+            <div class="mp-row checked" data-m="12" onclick="toggleMonthRow(12)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div><span>Diciembre</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="period-sep" id="periodSep" style="display:none"></div>
+      <input id="excelFile" type="file" accept=".xlsx,.xls">
+      <button class="chip" onclick="document.getElementById('excelFile').click()">📂 Cargar Excel</button>
+      <button id="restoreBtn" class="chip hidden" onclick="restoreDemo()">↩ Limpiar</button>
+      <button id="exportBtn" class="chip hidden" onclick="exportHTML()">⬇ Exportar HTML</button>
+      <button id="valToggleBtn" class="chip hidden" onclick="toggleValDetail()" title="Ver validaciones del modelo">✓ Validaciones</button>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl space-y-8">
+
+  <!-- ═══ UPLOAD ZONE (visible cuando no hay datos) ═══ -->
+  <div id="uploadZone" class="upload-zone" onclick="document.getElementById('excelFile').click()"
+       ondragover="event.preventDefault();this.classList.add('drag')"
+       ondragleave="this.classList.remove('drag')"
+       ondrop="handleDrop(event)">
+    <div style="font-size:40px;margin-bottom:16px">📊</div>
+    <p class="text-lg font-semibold" style="color:rgba(255,255,255,.7)">Carga el Libro Diario o P&amp;G de Holded</p>
+    <p class="text-sm text-gray-400 mt-2">Arrastra el .xlsx aquí o haz clic para seleccionar</p>
+    <p class="text-xs text-gray-500 mt-4">Formatos soportados: Libro Diario Holded · P&amp;G Holded anual</p>
+  </div>
+
+  <!-- ═══ DASHBOARD (oculto hasta cargar datos) ═══ -->
+  <div id="dashboard" class="hidden space-y-8">
+
+    <!-- Holded reference panel (for validation) -->
+    <div id="holdedRefPanel" class="glass-card p-6 hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h5 class="font-semibold text-sm">Valores de referencia Holded</h5>
+          <p class="text-xs text-gray-400 mt-1">Opcional: introduce los totales del P&G Holded para activar el check de cuadre</p>
+        </div>
+        <button class="chip text-xs" onclick="runValidation()">Verificar cuadre</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+        <div>
+          <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em">Net Revenue Holded (€)</label>
+          <input id="refNR" type="number" placeholder="3238901" style="margin-top:6px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:.5rem;padding:8px 12px;font-size:13px;color:#f4f4f5;outline:none">
+        </div>
+        <div>
+          <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em">Net Income Holded (€)</label>
+          <input id="refNI" type="number" placeholder="437955" style="margin-top:6px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:.5rem;padding:8px 12px;font-size:13px;color:#f4f4f5;outline:none">
+        </div>
+        <div>
+          <label style="font-size:11px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em">Resultado Explotación Holded (€)</label>
+          <input id="refEBIT" type="number" placeholder="458457" style="margin-top:6px;width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);border-radius:.5rem;padding:8px 12px;font-size:13px;color:#f4f4f5;outline:none">
+        </div>
+      </div>
+    </div>
+    <div id="valBanner" class="val-banner ok hidden">
+      <span id="valIcon">✓</span>
+      <span id="valMsg"></span>
+    </div>
+
+
+
+    <!-- KPI cards -->
+    <div class="grid-kpi">
+      <div class="glass-card kpi-card indigo">
+        <div class="kpi-label">Net Revenue</div>
+        <div class="kpi-value" id="kpiNR">—</div>
+        <div class="kpi-sub">Ingresos operativos netos</div>
+      </div>
+      <div class="glass-card kpi-card emerald">
+        <div class="kpi-label">Gross Margin</div>
+        <div class="kpi-value" id="kpiGM">—</div>
+        <div class="kpi-sub" id="kpiGMamt">Gross Profit</div>
+      </div>
+      <div class="glass-card kpi-card amber">
+        <div class="kpi-label">Contribution Margin</div>
+        <div class="kpi-value" id="kpiCM">—</div>
+        <div class="kpi-sub" id="kpiCMamt">CM en €</div>
+      </div>
+      <div class="glass-card kpi-card purple">
+        <div class="kpi-label">EBITDA</div>
+        <div class="kpi-value" id="kpiEBITDA">—</div>
+        <div class="kpi-sub" id="kpiEBITDAamt">EBITDA en €</div>
+      </div>
+      <div class="glass-card kpi-card pink">
+        <div class="kpi-label">Net Income</div>
+        <div class="kpi-value" id="kpiNI">—</div>
+        <div class="kpi-sub">Resultado antes de impuestos</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="grid-2">
+      <!-- Monthly EBITDA chart -->
+      <div class="glass-card p-7">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-xl font-semibold">Evolución mensual</h4>
+          <span class="text-xs text-gray-400" id="chartSubtitle">NR · EBITDA</span>
+        </div>
+        <div style="height:280px"><canvas id="monthlyChart"></canvas></div>
+      </div>
+
+      <!-- Waterfall P&L -->
+      <div class="glass-card p-7">
+        <div class="flex items-center justify-between mb-4">
+          <h4 class="text-xl font-semibold">Cascada P&amp;L</h4>
+          <span class="text-xs text-gray-400">Período seleccionado</span>
+        </div>
+        <div id="waterfallChart" style="padding-top:8px"></div>
+      </div>
+    </div>
+
+    <!-- By line of business -->
+    <div class="glass-card p-7">
+      <div class="flex items-center justify-between mb-6">
+        <h4 class="text-xl font-semibold">Ingresos por línea de negocio</h4>
+        <span class="text-xs text-gray-400">% sobre Net Revenue</span>
+      </div>
+      <div id="byLineChart" style="height:180px"><canvas id="lineChart"></canvas></div>
+    </div>
+
+    <!-- P&L Table -->
+    <div class="glass-card p-7">
+      <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <h4 class="text-xl font-semibold">P&amp;L Operativa — Detalle</h4>
+          <span id="activePeriodBadge"></span>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">Haz clic en ▶ para expandir el detalle de cada sección</p>
+        <div class="flex gap-2">
+          <button class="chip text-xs" id="buViewBtn" onclick="toggleBUView()">Vista BU</button>
+          <button class="chip text-xs" onclick="expandAll(true)">Expandir todo</button>
+          <button class="chip text-xs" onclick="expandAll(false)">Colapsar</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="pl-table">
+          <thead>
+            <tr id="plTableHead">
+              <th style="width:36px"></th>
+              <th>Concepto</th>
+              <th class="num">Importe (€)</th>
+              <th class="num">% NR</th>
+            </tr>
+          </thead>
+          <tbody id="plTableBody"></tbody>
+        </table>
+      </div>
+
+      <!-- Warnings -->
+      <div id="warningsBox" class="mt-4 hidden">
+        <p class="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-2">Notas del modelo</p>
+        <div id="warningsList" class="space-y-1"></div>
+      </div>
+
+      <!-- Fase 2 legend -->
+      <div class="mt-4" style="display:flex;align-items:center;gap:16px;padding:10px 0;border-top:1px solid rgba(255,255,255,.06)">
+        <span style="font-size:10px;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:.08em">Fase 2:</span>
+        <span style="font-size:10px;color:#fbbf24">⬡ Dim1</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.3)">Naturaleza COGS/OPEX pendiente de tag</span>
+        <span style="font-size:10px;color:#a5b4fc">⬡ Dim2</span>
+        <span style="font-size:10px;color:rgba(255,255,255,.3)">Línea negocio pendiente de tag</span>
+      </div>
+    </div>
+
+    <!-- Validation detail (toggled by header button) -->
+    <div class="glass-card p-6" id="valDetail" style="display:none">
+      <div class="flex items-center justify-between mb-4">
+        <h5 class="font-semibold text-sm">Validaciones del modelo</h5>
+        <button class="chip text-xs" onclick="document.getElementById('holdedRefPanel').classList.toggle('hidden')">
+          Introducir referencias Holded
+        </button>
+      </div>
+      <div id="valChecks" class="space-y-1"></div>
+    </div>
+
+  </div><!-- /dashboard -->
+</main>
+
+<script>
+// ═════════════════════════════════════════════════════════════════════════════
+// ENGINE (pl_engine.js inlined)
+// ═════════════════════════════════════════════════════════════════════════════
+'use strict';
+
+const ACCOUNT_MAPPING = {
+  '7050002':{ section:'NR', line:'Talento · One Shot (incl. devolución)', sign:'income' },
+  '7050004':{ section:'NR', line:'Talento · Acción', sign:'income' },
+  '7050005':{ section:'NR', line:'Talento · Retainer Mensual', sign:'income' },
+  '7050006':{ section:'NR', line:'Cuentas · One Shot', sign:'income' },
+  '7050007':{ section:'NR', line:'Cuentas · Retainer Seasonal', sign:'income' },
+  '7050008':{ section:'NR', line:'Cuentas · Retainer Mensual', sign:'income' },
+  '7050010':{ section:'NR', line:'Cuentas · Retainer Anual', sign:'income' },
+  '7050012':{ section:'NR', line:'Cuentas · Acción', sign:'income' },
+  '7050017':{ section:'NR', line:'PRs · Retainer Seasonal', sign:'income' },
+  '7050018':{ section:'NR', line:'PRs · Retainer Mensual', sign:'income' },
+  '7050019':{ section:'NR', line:'PRs · Acción', sign:'income' },
+  '7050020':{ section:'NR', line:'PRs · One Shot', sign:'income' },
+  '7050016':{ section:'NR', line:'PRs · Retainer Anual', sign:'income' },
+  '7050003':{ section:'RECONCILIACION', line:'Prestaciones servicios misc', sign:'income' },
+  '7520001':{ section:'RECONCILIACION', line:'Ingresos intragrupo — LOCAL LEXA', sign:'income', note:'Operación vinculada. Verificar precio de transferencia.' },
+  '7540000':{ section:'RECONCILIACION', line:'Comisiones (residual)', sign:'income' },
+  '7590000':{ section:'RECONCILIACION', line:'Servicios diversos (no operativo)', sign:'income' },
+  '6290011':{ section:'RECONCILIACION', line:'Ajuste gastos socios', sign:'income', note:'🚨 Apunte incorrecto. Regularizar con gestoría.' },
+  '6070000':{ section:'COGS', line:'Trabajos realizados por otras empresas', sign:'expense', phase2_dim2:'LINEA_TAG' },
+  '6290002':{ section:'COGS', line:'Gastos de producción', sign:'expense', phase2_dim1:'COGS_OPEX_TAG', phase2_dim2:'LINEA_TAG' },
+  '6290012':{ section:'COGS', line:'Talent fees / cachés', sign:'expense', phase2_dim2:'LINEA_TAG' },
+  '6290001':{ section:'COGS', line:'Desplazamiento proyecto', sign:'expense', phase2_dim1:'COGS_OPEX_TAG' },
+  '6290013':{ section:'COGS', line:'Dietas y gastos sin factura', sign:'expense', note:'⚠ Revisar deducibilidad IVA.' },
+  '6290014':{ section:'COGS', line:'Hostelería proyecto', sign:'expense', phase2_dim1:'COGS_OPEX_TAG' },
+  '6290005':{ section:'COGS', line:'Representación y dietas proyecto', sign:'expense', phase2_dim1:'COGS_OPEX_TAG' },
+  '6290017':{ section:'COGS', line:'Desplazamiento proyecto — Taxis', sign:'expense', phase2_dim1:'COGS_OPEX_TAG', note:'Subcuenta de desplazamiento. Misma lógica que 6290001.' },
+  '6400000':{ section:'PERSONAL_BASE', line:'Sueldos y salarios', sign:'expense', tag_routed:true },
+  '6410000':{ section:'PERSONAL_BASE', line:'Indemnizaciones', sign:'expense', tag_routed:true },
+  '6420000':{ section:'PERSONAL_BASE', line:'Seguridad Social empresa', sign:'expense', tag_routed:true },
+  '6230003':{ section:'OPEX_DPTO', line:'Servicios profesionales vinculados (excl. founders)', sign:'expense', note:'Reasignado a OPEX DPTO · v3. Colaboradoras externas vinculadas.' },
+  '6230004':{ section:'MGMT_FEES_RAW', line:'Founders · Molinero + Nikolov (6230004)', sign:'expense', note:'Management fees founders. Ídem lógica anterior.' },
+  '6210004':{ section:'OPEX_DPTO', line:'Suscripción software', sign:'expense' },
+  '6290003':{ section:'OPEX_DPTO', line:'Gastos de software', sign:'expense' },
+  '6230005':{ section:'OPEX_DPTO', line:'Servicios societarios', sign:'expense' },
+  '6290016':{ section:'COGS', line:'Desplazamiento proyecto — Taxis (6290016)', sign:'expense', note:'Subcuenta de desplazamiento. Misma lógica que 6290017.' },
+  '6290018':{ section:'COGS', line:'Dietas BCN (6290018)', sign:'expense', note:'Subcuenta de dietas. Misma lógica que 6290005.' },
+  '6800000':{ section:'DA', line:'Amortización inmovilizado material', sign:'expense' },
+  '6810000':{ section:'DA', line:'Amortización inmovilizado intangible', sign:'expense' },
+  '6210000':{ section:'OPEX_EST', line:'Arrendamientos y cánones', sign:'expense' },
+  '6210001':{ section:'OPEX_EST', line:'Alquiler espacios', sign:'expense' },
+  '6210002':{ section:'OPEX_EST', line:'Refacturación gastos oficina', sign:'expense' },
+  '6220000':{ section:'OPEX_EST', line:'Reparaciones y conservación', sign:'expense' },
+  '6230000':{ section:'OPEX_EST', line:'Servicios profesionales externos', sign:'expense' },
+  '6230001':{ section:'OPEX_EST', line:'Gestoría / asesoría', sign:'expense' },
+  '6250000':{ section:'OPEX_EST', line:'Seguros', sign:'expense' },
+  '6260000':{ section:'OPEX_EST', line:'Servicios bancarios', sign:'expense' },
+  '6280002':{ section:'OPEX_EST', line:'Internet y teléfono', sign:'expense' },
+  '6280003':{ section:'OPEX_EST', line:'Luz', sign:'expense' },
+  '6280004':{ section:'OPEX_EST', line:'Agua', sign:'expense' },
+  '6280005':{ section:'OPEX_EST', line:'Alarma', sign:'expense' },
+  '6290000':{ section:'OPEX_EST', line:'Otros servicios', sign:'expense' },
+  '6290004':{ section:'OPEX_EST', line:'Gastos de oficina general', sign:'expense' },
+  '6290008':{ section:'OPEX_EST', line:'Mensajería Auctane', sign:'expense' },
+  '6290009':{ section:'OPEX_EST', line:'Gastos varios', sign:'expense' },
+  '6290010':{ section:'OPEX_EST', line:'Mobiliario oficina', sign:'expense' },
+  '6290015':{ section:'OPEX_EST', line:'New Business / captación', sign:'expense' },
+  '6310000':{ section:'OPEX_EST', line:'Tributos y tasas', sign:'expense' },
+  '7690000':{ section:'FIN', line:'Ingresos financieros', sign:'income' },
+  '6620000':{ section:'FIN', line:'Intereses deudas empresas', sign:'expense' },
+  '6690000':{ section:'FIN', line:'Otros gastos financieros', sign:'expense' },
+  '6680000':{ section:'FIN', line:'Diferencias negativas de cambio', sign:'expense' },
+  '7780000':{ section:'EXCEPCIONAL', line:'Ingresos excepcionales', sign:'income' },
+  '6780000':{ section:'EXCEPCIONAL', line:'Gastos excepcionales', sign:'expense' },
+  // ── Cuentas añadidas v13 ─────────────────────────────────────────────────
+  // COGS
+  '6000000':{ section:'COGS', line:'Compras de mercaderías', sign:'expense' },
+  '6070001':{ section:'COGS', line:'Trabajos realizados por otras (6070001)', sign:'expense' },
+  '6080000':{ section:'COGS', line:'Devoluciones de compras de mercaderías', sign:'income' },
+  '6210003':{ section:'COGS', line:'Alquiler material producción', sign:'expense' },
+  // OPEX DPTO
+  '6240001':{ section:'OPEX_DPTO', line:'Mensajería', sign:'expense' },
+  '6270001':{ section:'OPEX_DPTO', line:'Gastos eventos y catering', sign:'expense' },
+  '6270002':{ section:'OPEX_DPTO', line:'Publicidad y digital PR', sign:'expense' },
+  '6280001':{ section:'OPEX_DPTO', line:'Gasolina', sign:'expense' },
+  '6290019':{ section:'OPEX_DPTO', line:'Gastos de viaje — visados y trámites', sign:'expense' },
+  // OPEX EST
+  '6250001':{ section:'OPEX_EST', line:'Securitas Direct', sign:'expense' },
+  '6290006':{ section:'OPEX_EST', line:'Gastos de hardware', sign:'expense' },
+  '6290007':{ section:'OPEX_EST', line:'Gastos de formación', sign:'expense' },
+  // PERSONAL (tag_routed — misma lógica que 6400000/6420000)
+  '6490000':{ section:'PERSONAL_BASE', line:'Otros gastos sociales', sign:'expense', tag_routed:true },
+  // EXCEPCIONAL
+  '6300000':{ section:'EXCEPCIONAL', line:'Impuesto corriente (IS)', sign:'expense' },
+  '6590000':{ section:'EXCEPCIONAL', line:'Otras pérdidas en gestión corriente', sign:'expense' },
+  // RECONCILIACION
+  '7000000':{ section:'RECONCILIACION', line:'Ventas de mercaderías', sign:'income' },
+  '7050000':{ section:'RECONCILIACION', line:'Prestaciones de servicios (genérico)', sign:'income' },
+  '7050001':{ section:'RECONCILIACION', line:'Prestaciones serv. cuentas', sign:'income' },
+  '7080000':{ section:'RECONCILIACION', line:'Devoluciones de ventas de mercaderías', sign:'expense' },
+};
+
+const DEFAULT_CFG = { mgmt_fees_founders:127420 }; // pct_prod/comms/admin removed — personal now tag-routed
+
+function r2(x){ return Math.round((+x + Number.EPSILON)*100)/100; }
+function normalizeKey(k){ return String(k||'').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,''); }
+function isBalanceAccount(c){ return !String(c||'').startsWith('6') && !String(c||'').startsWith('7'); }
+
+function parseFecha(v){
+  if(!v) return null;
+  let d=null;
+  if(v instanceof Date && !isNaN(v)) d=v;
+  else if(typeof v==='number'){
+    d=new Date(1900,0,1); d.setDate(d.getDate()+v-2);
+  } else {
+    const s=String(v).trim();
+    const m1=s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if(m1) d=new Date(+m1[1],+m1[2]-1,+m1[3]);
+    else{ const m2=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if(m2) d=new Date(+m2[3],+m2[2]-1,+m2[1]); }
+  }
+  if(!d||isNaN(d)) return null;
+  return { mes:d.getMonth()+1, año:d.getFullYear() };
+}
+
+function parseLibroDiario(wb){
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  let headerRow=-1;
+  for(let i=0;i<Math.min(rawRows.length,10);i++){
+    if(rawRows[i].some(c=>normalizeKey(String(c))==='asiento')){ headerRow=i; break; }
+  }
+  if(headerRow===-1) throw new Error('No se encontró columna "Asiento". ¿Es este el Libro Diario de Holded?');
+  const hdrs=rawRows[headerRow].map(normalizeKey);
+  const ci={
+    fecha: hdrs.findIndex(h=>h==='fecha'),
+    cuenta: hdrs.findIndex(h=>h==='cuenta'),
+    debe:   hdrs.findIndex(h=>h==='debe'),
+    haber:  hdrs.findIndex(h=>h==='haber'),
+    tags:   hdrs.findIndex(h=>h==='tags'),
+    desc:   hdrs.findIndex(h=>h.includes('descripci')),
+    tag_bu: hdrs.findIndex(h=>h==='tag_bu'||h==='tagbu'||h==='tag bu'),
+    tipo:   hdrs.findIndex(h=>h==='tipo'),
+  };
+  // Asientos de regularización y cierre anuales contienen los saldos acumulados
+  // en contrapartida del asiento de apertura (tipo "Entrada"). Incluirlos duplicaría
+  // los importes y cancelaría el saldo neto a cero — se excluyen del cómputo P&L.
+  const TIPOS_EXCLUIDOS=new Set(['reg','cierre']);
+  const BU_VALUES=['Partnership','PRs','Corporativo'];
+  const rows=[], unmapped=new Set();
+  for(let i=headerRow+1;i<rawRows.length;i++){
+    const r=rawRows[i];
+    if(!r||r.every(c=>c===''||c===null)) continue;
+    const cRaw=r[ci.cuenta];
+    if(!cRaw) continue;
+    // Skip regularisation and closing entries
+    if(ci.tipo>=0){
+      const tipo=String(r[ci.tipo]||'').trim().toLowerCase();
+      if(TIPOS_EXCLUIDOS.has(tipo)) continue;
+    }
+    const cuenta=typeof cRaw==='number'?String(Math.round(cRaw)):String(cRaw).trim();
+    if(isBalanceAccount(cuenta)) continue;
+    const mapping=ACCOUNT_MAPPING[cuenta];
+    if(!mapping){ if(cuenta.startsWith('6')||cuenta.startsWith('7')) unmapped.add(cuenta); continue; }
+    const fObj=parseFecha(r[ci.fecha]);
+    if(!fObj) continue;
+    const debe=parseFloat(r[ci.debe]||0)||0;
+    const haber=parseFloat(r[ci.haber]||0)||0;
+    const tags=String(r[ci.tags]||'').toLowerCase().trim();
+    // Tag_BU: read if column exists, normalize, default to 'Corporativo'
+    let tag_bu='Corporativo';
+    if(ci.tag_bu>=0){
+      const raw_bu=String(r[ci.tag_bu]||'').trim();
+      if(BU_VALUES.includes(raw_bu)) tag_bu=raw_bu;
+      else if(raw_bu==='') tag_bu='Corporativo'; // blank → structural cost
+    }
+    const importe=mapping.sign==='expense'?r2(debe-haber):r2(haber-debe);
+    // ── Tag-based personal routing for 64* accounts ──────────────────────
+    // Rules: tag → P&L sub-section
+    //   talent | cuentas | pr | partnerships → PERSONAL_PARTNER_PR
+    //   creativoycomss                       → PERSONAL_COMMS
+    //   produccion                           → PERSONAL_PROD
+    //   - (or blank/unknown)                 → PERSONAL_ADMIN
+    let section=mapping.section;
+    let line=mapping.line;
+    if(mapping.tag_routed){
+      // Split composite tags (e.g. 'cuentas,talent') — use first recognized token
+      const tagTokens=tags.split(',').map(t=>t.trim());
+      const PARTNER_TAGS=new Set(['talent','cuentas','pr','partnerships']);
+      if(tagTokens.some(t=>PARTNER_TAGS.has(t))){
+        section='PERSONAL_PARTNER_PR';
+        line='Personal Partnership/PRs';
+      } else if(tagTokens.includes('creativoycomss')){
+        section='PERSONAL_COMMS';
+        line='Personal Comms';
+      } else if(tagTokens.includes('produccion')){
+        section='PERSONAL_PROD';
+        line='Personal Producción';
+      } else {
+        // '-', blank, admin, rrhh, or any unrecognized tag → admin/structure
+        section='PERSONAL_ADMIN';
+        line='Personal Admin/HR/Fin';
+      }
+    }
+    rows.push({ cuenta, section, sign:mapping.sign, line,
+                importe, mes:fObj.mes, año:fObj.año, tags, tag_bu, note:mapping.note||null,
+                phase2_dim1:mapping.phase2_dim1||null, phase2_dim2:mapping.phase2_dim2||null });
+  }
+  return { rows, unmapped:[...unmapped], fuente:'libro_diario' };
+}
+
+function parsePyG(wb){
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const rows=[], unmapped=new Set();
+  for(const r of rawRows){
+    const colA=String(r[0]||'').trim();
+    const colB=r[1];
+    if(!colA||colB===''||colB===null) continue;
+    const m=colA.match(/^([67]\d{4,6})/);
+    if(!m) continue;
+    const cuenta=m[1];
+    const imp=parseFloat(colB)||0;
+    if(imp===0) continue;
+    const mapping=ACCOUNT_MAPPING[cuenta];
+    if(!mapping){ unmapped.add(cuenta); continue; }
+    const importe=mapping.sign==='expense'?r2(-imp):r2(imp);
+    rows.push({ cuenta, section:mapping.section, sign:mapping.sign, line:mapping.line,
+                importe, mes:null, año:null, tags:'', note:mapping.note||null,
+                phase2_dim1:mapping.phase2_dim1||null, phase2_dim2:mapping.phase2_dim2||null });
+  }
+  return { rows, unmapped:[...unmapped], fuente:'pyg_holded' };
+}
+
+function detectAndParse(wb){
+  const ws=wb.Sheets[wb.SheetNames[0]];
+  const rawRows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+  const hasAsiento=rawRows.slice(0,10).some(row=>row.some(c=>normalizeKey(String(c))==='asiento'));
+  return hasAsiento?parseLibroDiario(wb):parsePyG(wb);
+}
+
+function computePL(rawData, opts={}){
+  const {rows,fuente}=rawData;
+  const cfg=Object.assign({},DEFAULT_CFG,opts.config||{});
+  const warnings=[];
+  let data=rows;
+  // Filter by año
+  if(opts.año && opts.año!=='__all__'){
+    data=rows.filter(r=>r.año===+opts.año||r.año===null);
+  }
+  // Filter by mes
+  if(Array.isArray(opts.mes)){
+    data=data.filter(r=>r.mes===null||opts.mes.includes(r.mes));
+  } else if(opts.mes && opts.mes!=='__all__'){
+    const meses=Array.isArray(opts.mes)?opts.mes:[opts.mes];
+    data=data.filter(r=>r.mes===null||meses.includes(r.mes));
+  }
+
+  // ── Core P&L builder (reusable for total + per-BU) ─────────────────────
+  function buildPL(subset){
+    const by={};
+    const byC={};
+    for(const r of subset){
+      // MGMT_FEES_RAW rows (6230004) get routed into MGMT_FEES bucket
+      const sec=r.section==='MGMT_FEES_RAW'?'MGMT_FEES':r.section;
+      if(!by[sec]) by[sec]={};
+      if(!by[sec][r.cuenta]) by[sec][r.cuenta]={line:r.line,importe:0,rows:[]};
+      // For personal sections, key by section so each sub-section gets its own line
+      const detailKey=(['PERSONAL_PARTNER_PR','PERSONAL_COMMS','PERSONAL_PROD','PERSONAL_ADMIN'].includes(sec))
+        ?'__'+sec+'__':r.cuenta;
+      if(!by[sec][detailKey]) by[sec][detailKey]={line:r.line,importe:0,rows:[]};
+      by[sec][detailKey].importe=r2(by[sec][detailKey].importe+r.importe);
+      by[sec][detailKey].rows.push(r);
+      byC[r.cuenta]=r2((byC[r.cuenta]||0)+r.importe);
+    }
+    const st=s=>Object.values(by[s]||{}).reduce((a,x)=>a+x.importe,0);
+
+    const net_revenue=r2(st('NR'));
+    const cogs=r2(st('COGS'));
+    const gross_profit=r2(net_revenue-cogs);
+    const gm_pct=net_revenue?r2(gross_profit/net_revenue):0;
+
+    // ── Tag-routed personal costs ─────────────────────────────────────────
+    const personal_partner_pr = r2(st('PERSONAL_PARTNER_PR'));
+    const personal_comms      = r2(st('PERSONAL_COMMS'));
+    const personal_prod       = r2(st('PERSONAL_PROD'));
+    const personal_admin      = r2(st('PERSONAL_ADMIN'));
+    const personal_total      = r2(personal_partner_pr+personal_comms+personal_prod+personal_admin);
+
+    // 6230004 → MGMT_FEES direct; 6230003 → OPEX_DPTO direct (in section already)
+    const mgmt_fees=r2(st('MGMT_FEES'));
+    const opex_dpto_accounts=r2(st('OPEX_DPTO'));
+    // OPEX Departamental = personal dpto (partner/pr + comms + prod) + OPEX_DPTO accounts
+    const opex_dpto=r2(personal_partner_pr+personal_comms+personal_prod+opex_dpto_accounts);
+    const cm=r2(gross_profit-opex_dpto-mgmt_fees);
+    const cm_pct=net_revenue?r2(cm/net_revenue):0;
+    // OPEX Estructura = structural accounts + personal admin
+    const opex_est=r2(st('OPEX_EST')+personal_admin);
+    const ebitda=r2(cm-opex_est);
+    const ebitda_pct=net_revenue?r2(ebitda/net_revenue):0;
+    const da=r2(st('DA'));
+    const ebit=r2(ebitda-da);
+
+    const fin_ing=subset.filter(r=>r.section==='FIN'&&r.sign==='income').reduce((a,r)=>a+r.importe,0);
+    const fin_gto=subset.filter(r=>r.section==='FIN'&&r.sign==='expense').reduce((a,r)=>a+r.importe,0);
+    const res_fin=r2(fin_ing-fin_gto);
+    const exc_ing=subset.filter(r=>r.section==='EXCEPCIONAL'&&r.sign==='income').reduce((a,r)=>a+r.importe,0);
+    const exc_gto=subset.filter(r=>r.section==='EXCEPCIONAL'&&r.sign==='expense').reduce((a,r)=>a+r.importe,0);
+    const res_exc=r2(exc_ing-exc_gto);
+    const rec_ing=subset.filter(r=>r.section==='RECONCILIACION'&&r.sign==='income').reduce((a,r)=>a+r.importe,0);
+    const rec_gto=subset.filter(r=>r.section==='RECONCILIACION'&&r.sign==='expense').reduce((a,r)=>a+r.importe,0);
+    const recon=r2(rec_ing-rec_gto);
+    const net_income=r2(ebit+res_fin+res_exc+recon);
+
+    // ── Enrich OPEX_DPTO detail with personal sub-lines ───────────────────
+    if(!by['OPEX_DPTO']) by['OPEX_DPTO']={};
+    if(personal_partner_pr!==0)
+      by['OPEX_DPTO']['__personal_partner_pr__']={line:'Personal Partnership/PRs',importe:personal_partner_pr,rows:[]};
+    if(personal_prod!==0)
+      by['OPEX_DPTO']['__personal_prod__']={line:'Personal Producción',importe:personal_prod,rows:[]};
+    if(personal_comms!==0)
+      by['OPEX_DPTO']['__personal_comms__']={line:'Personal Comms',importe:personal_comms,rows:[]};
+    // ── Enrich MGMT_FEES detail ───────────────────────────────────────────
+    if(!by['MGMT_FEES']) by['MGMT_FEES']={};
+    by['MGMT_FEES']['__founders__']={line:'Founders · Molinero + Nikolov (6230004)',importe:mgmt_fees,rows:[]};
+    // ── Enrich OPEX_EST detail with personal admin line ───────────────────
+    if(!by['OPEX_EST']) by['OPEX_EST']={};
+    if(personal_admin!==0)
+      by['OPEX_EST']['__personal_admin__']={line:'Personal Admin/HR/Fin',importe:personal_admin,rows:[]};
+
+    return { net_revenue,cogs,gross_profit,gm_pct,opex_dpto,mgmt_fees,cm,cm_pct,
+             opex_est,ebitda,ebitda_pct,da,ebit,res_fin,res_exc,recon,net_income,
+             personal_total,personal_partner_pr,personal_comms,personal_prod,personal_admin,
+             // legacy aliases for KPIs / charts that reference old names
+             personal_prod_legacy:personal_prod, personal_comms_legacy:personal_comms,
+             mgmt_fees_founders:mgmt_fees,detail:by };
+  }
+
+  // ── Total P&L ───────────────────────────────────────────────────────────
+  const total=buildPL(data);
+
+  // ── BU segmentation — Epígrafe × BU matrix ──────────────────────────────
+  // Dimension 1 (Epígrafe): resolved at parse time via Tag (col K) → section field.
+  // Dimension 2 (BU): resolved here via Tag_BU (col L) → tag_bu field.
+  //
+  // Routing rules per section family:
+  //   NR, COGS              → respect tag_bu per row (already done in v3+)
+  //   PERSONAL_*            → respect tag_bu per row (NEW: both dimensions active)
+  //   OPEX_DPTO (non-pers.) → 100% Corporativo (no BU tag on 623x/621x)
+  //   MGMT_FEES_RAW         → 100% Corporativo (founders)
+  //   OPEX_EST, DA, FIN,    → 100% Corporativo (structural / below-line)
+  //   EXCEPCIONAL, RECON    → 100% Corporativo
+  //
+  // Exception handling:
+  //   PERSONAL row with tag_bu not in {Partnership, PRs, Corporativo}
+  //   → falls back to 'Corporativo' (already enforced by parser default)
+  const NR_COGS = ['NR','COGS'];
+  const PERSONAL_SECTIONS = ['PERSONAL_PARTNER_PR','PERSONAL_COMMS','PERSONAL_PROD','PERSONAL_ADMIN'];
+  const has_tag_bu = data.some(r=>(r.tag_bu||'')!=='');
+
+  const bu_pl={};
+  for(const bu of ['Partnership','PRs','Corporativo']){
+    let subset;
+    if(bu==='Corporativo'){
+      // Corporativo gets:
+      //   - its own NR/COGS rows (tag_bu === 'Corporativo')
+      //   - its own PERSONAL rows (tag_bu === 'Corporativo')
+      //   - ALL non-personal structural rows (OPEX_DPTO accounts, MGMT_FEES, OPEX_EST, DA, FIN, etc.)
+      subset = data.filter(r => {
+        if(NR_COGS.includes(r.section)) return r.tag_bu==='Corporativo';
+        if(PERSONAL_SECTIONS.includes(r.section)) return r.tag_bu==='Corporativo';
+        return true; // structural non-personal → always Corporativo
+      });
+    } else {
+      // Partnership / PRs get:
+      //   - their tagged NR/COGS rows
+      //   - their tagged PERSONAL rows (e.g. talent/Partnership)
+      //   - NO structural costs (zero OPEX_EST, OPEX_DPTO accounts, etc.)
+      subset = data.filter(r =>
+        (NR_COGS.includes(r.section) || PERSONAL_SECTIONS.includes(r.section))
+        && r.tag_bu === bu
+      );
+    }
+    bu_pl[bu] = buildPL(subset);
+  }
+
+  // ── Warnings & matrix validations ───────────────────────────────────────
+  if(!has_tag_bu) warnings.push('⚠ Columna Tag_BU no detectada o vacía. Carga el Libro Diario actualizado para activar la vista por BU.');
+
+  // Personal untagged coverage warning
+  const personal_untagged_pct = total.personal_total>0 ? total.personal_admin/total.personal_total : 0;
+  if(personal_untagged_pct>0.5) warnings.push(`ⓘ Personal: ${(personal_untagged_pct*100).toFixed(0)}% asignado a Admin/HR/Fin (tag '-'). Para mayor precisión, añadir tags en Holded a las nóminas del equipo.`);
+
+  // Matrix coherence: sum of BU personal should equal total personal
+  const bu_personal_sum = r2(
+    (bu_pl['Partnership']?.personal_total||0) +
+    (bu_pl['PRs']?.personal_total||0) +
+    (bu_pl['Corporativo']?.personal_total||0)
+  );
+  if(Math.abs(bu_personal_sum - total.personal_total) > 1){
+    warnings.push(`⚠ MATRIX ERROR: Personal BU sum (${bu_personal_sum.toFixed(0)}€) ≠ Total personal (${total.personal_total.toFixed(0)}€). Revisar tags Tag_BU en cuentas 64*.`);
+  }
+
+  // Detect rows with tag_bu outside valid set (parser defaults to Corporativo, but flag it)
+  const VALID_BUS = new Set(['Partnership','PRs','Corporativo']);
+  const invalid_bu_rows = data.filter(r =>
+    PERSONAL_SECTIONS.includes(r.section) && !VALID_BUS.has(r.tag_bu)
+  );
+  if(invalid_bu_rows.length>0){
+    const cuentas_inv = [...new Set(invalid_bu_rows.map(r=>r.cuenta))].join(', ');
+    warnings.push(`⚠ ${invalid_bu_rows.length} fila(s) de personal con Tag_BU inválido (redirigidas a Corporativo): cuentas ${cuentas_inv}`);
+  }
+
+  // ── Monthly (only libro_diario) ─────────────────────────────────────────
+  let monthly=[];
+  if(fuente==='libro_diario'){
+    const keys=[...new Set(rows.filter(r=>r.mes&&(opts.año==='__all__'||!opts.año||r.año===+opts.año))
+      .map(r=>`${r.año}-${String(r.mes).padStart(2,'0')}`))].sort();
+    monthly=keys.map(mk=>{
+      const [y,m]=mk.split('-').map(Number);
+      const md=rows.filter(r=>r.mes===m&&r.año===y);
+      const m_nr=r2(md.filter(r=>r.section==='NR').reduce((a,r)=>a+r.importe,0));
+      const m_cogs=r2(md.filter(r=>r.section==='COGS').reduce((a,r)=>a+r.importe,0));
+      const m_gp=r2(m_nr-m_cogs);
+      // Personal: use tag-routed sections directly
+      const m_personal_dpto=r2(md.filter(r=>['PERSONAL_PARTNER_PR','PERSONAL_COMMS','PERSONAL_PROD'].includes(r.section)).reduce((a,r)=>a+r.importe,0));
+      const m_personal_admin=r2(md.filter(r=>r.section==='PERSONAL_ADMIN').reduce((a,r)=>a+r.importe,0));
+      const m_mgmt=r2(md.filter(r=>r.cuenta==='6230004').reduce((a,r)=>a+r.importe,0));
+      const m_opex_d_acc=r2(md.filter(r=>r.section==='OPEX_DPTO').reduce((a,r)=>a+r.importe,0));
+      const m_opex_d=r2(m_personal_dpto+m_opex_d_acc);
+      const m_cm=r2(m_gp-m_opex_d-m_mgmt);
+      const m_opex_e=r2(md.filter(r=>r.section==='OPEX_EST').reduce((a,r)=>a+r.importe,0)+m_personal_admin);
+      const m_ebitda=r2(m_cm-m_opex_e);
+      return {monthKey:mk,mes:m,año:y,net_revenue:m_nr,cogs:m_cogs,gross_profit:m_gp,cm:m_cm,ebitda:m_ebitda};
+    });
+  }
+
+  const by_line={
+    cuentas: r2(['7050006','7050007','7050008','7050010','7050012'].reduce((a,c)=>{
+      const d=total.detail?.NR?.[c]; return a+(d?d.importe:0);},0)),
+    talento: r2(['7050002','7050004','7050005'].reduce((a,c)=>{
+      const d=total.detail?.NR?.[c]; return a+(d?d.importe:0);},0)),
+    prs:     r2(['7050017','7050018','7050019','7050020','7050016'].reduce((a,c)=>{
+      const d=total.detail?.NR?.[c]; return a+(d?d.importe:0);},0)),
+  };
+  by_line.corp=r2(total.net_revenue-by_line.cuentas-by_line.talento-by_line.prs);
+
+  return {...total, monthly, by_line, bu_pl, has_tag_bu, fuente, warnings};
+}
+
+// ── (legacy alias — keep collab_externas so validation panel doesn't break) ──
+// collab_externas is no longer computed; validation panel references it safely via optional chaining
+
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FORMATTING
+// ═════════════════════════════════════════════════════════════════════════════
+const EUR=new Intl.NumberFormat('es-ES',{minimumFractionDigits:0,maximumFractionDigits:0});
+function fmtE(x){ return EUR.format(Math.round(+x||0))+'\u00a0€'; }
+function fmtPct(x){ return ((+x||0)*100).toFixed(1)+'%'; }
+function fmtK(x){ const v=Math.abs(+x||0); return v>=1e6?(v/1e6).toFixed(1)+'M':(v>=1e3?(v/1e3).toFixed(0)+'k':Math.round(v).toString()); }
+
+// ═════════════════════════════════════════════════════════════════════════════
+// STATE
+// ═════════════════════════════════════════════════════════════════════════════
+let RAW_DATA = null;
+let _xlsxBuffer = null; // raw xlsx bytes for export
+let _xlsxFilename = '';
+let PL = null;
+let buViewActive = false;
+let expandedSections = new Set(['NR','COGS','OPEX_DPTO','MGMT_FEES','OPEX_EST','FIN']);
+let añoFilter   = '__all__';
+let monthFilter = [1,2,3,4,5,6,7,8,9,10,11,12];
+let chartMonthly = null;
+let chartLine = null;
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FILE LOADING
+// ═════════════════════════════════════════════════════════════════════════════
+document.getElementById('excelFile').addEventListener('change', function(){
+  if(this.files[0]) loadFile(this.files[0]);
+});
+
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('uploadZone').classList.remove('drag');
+  const f=e.dataTransfer.files[0];
+  if(f) loadFile(f);
+}
+
+function loadFile(file){
+  // Show loading overlay for large files
+  const overlay=document.createElement('div');
+  overlay.className='loading-overlay';
+  overlay.innerHTML='<div><div class="loading-spinner"></div><p style="color:rgba(255,255,255,.6);font-size:13px;text-align:center;margin-top:12px">Procesando...</p></div>';
+  document.body.appendChild(overlay);
+
+  const reader=new FileReader();
+  reader.onload=function(e){
+    setTimeout(()=>{ // allow spinner to render
+    try{
+      const wb=XLSX.read(e.target.result,{type:'array',cellDates:true});
+      // Store raw bytes for export embedding
+      _xlsxBuffer=e.target.result;
+      _xlsxFilename=file.name;
+      RAW_DATA=detectAndParse(wb);
+      // Detect available years and set default before applyFilters
+      const añosDisponibles=[...new Set(
+        RAW_DATA.rows.filter(r=>r.año!==null).map(r=>r.año)
+      )].sort((a,b)=>a-b);
+      if(añosDisponibles.length>0){
+        añoFilter=String(añosDisponibles[añosDisponibles.length-1]);
+      } else {
+        añoFilter='__all__';
+      }
+      buildYearSelect(añosDisponibles);
+      syncMonthUI();
+      applyFilters();
+      document.getElementById('uploadZone').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      document.getElementById('restoreBtn').classList.remove('hidden');
+      document.getElementById('exportBtn').classList.remove('hidden');
+      document.getElementById('valToggleBtn').classList.remove('hidden');
+      document.getElementById('periodFilter').classList.add('visible');
+      document.getElementById('periodSep').style.display='';
+      setSourceChip(RAW_DATA.fuente, file.name);
+      // Show monthly column only for libro_diario
+      const showMonthFilter=RAW_DATA.fuente==='libro_diario';
+      if(!showMonthFilter){
+        monthFilter=[1,2,3,4,5,6,7,8,9,10,11,12];
+        syncMonthUI();
+      }
+      // Banner
+      if(RAW_DATA.unmapped.length>0){
+        showBanner('warn',`${RAW_DATA.unmapped.length} cuenta(s) no mapeada(s): ${RAW_DATA.unmapped.slice(0,5).join(', ')}${RAW_DATA.unmapped.length>5?'…':''} — revisar ACCOUNT_MAPPING`);
+      } else {
+        showBanner('ok',`Datos cargados correctamente · ${RAW_DATA.rows.length.toLocaleString('es-ES')} líneas · ${RAW_DATA.fuente==='libro_diario'?'Libro Diario':'P&G Holded'}`);
+      }
+      document.body.removeChild(overlay);
+    }catch(err){
+      document.body.removeChild(overlay);
+      alert('Error al procesar el archivo:\n'+err.message);
+      console.error(err);
+    }
+    }, 50); // end setTimeout
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function setSourceChip(fuente, filename){
+  const chip=document.getElementById('dataSourceChip');
+  chip.classList.remove('hidden');
+  chip.textContent=fuente==='libro_diario'?`Libro Diario · ${filename}`:`P&G Holded · ${filename}`;
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// FILTERS
+// ═════════════════════════════════════════════════════════════════════════════
+function buildYearSelect(años){
+  const select=document.getElementById('yearSelectInline');
+  if(!select) return;
+  select.innerHTML='';
+  if(años.length===0){
+    const opt=document.createElement('option');
+    opt.value='__all__';
+    opt.textContent='Todos';
+    select.appendChild(opt);
+    añoFilter='__all__';
+    return;
+  }
+  años.forEach(y=>{
+    const opt=document.createElement('option');
+    opt.value=String(y);
+    opt.textContent='FY '+y;
+    if(String(y)===añoFilter) opt.selected=true;
+    select.appendChild(opt);
+  });
+}
+
+function handleYearChange(value){
+  añoFilter=value;
+  applyFilters();
+}
+
+// ── Month dropdown ──────────────────────────────────────────────────────
+const MONTH_NAMES=['Enero','Febrero','Marzo','Abril','Mayo','Junio',
+  'Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const MONTH_SHORT=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+function toggleMonthPanel(){
+  const panel=document.getElementById('monthPanel');
+  const trigger=document.getElementById('monthTrigger');
+  const isOpen=panel.classList.contains('open');
+  if(isOpen){ closeMonthPanel(); }
+  else { panel.classList.add('open'); trigger.classList.add('open'); }
+}
+
+function closeMonthPanel(){
+  document.getElementById('monthPanel').classList.remove('open');
+  document.getElementById('monthTrigger').classList.remove('open');
+}
+
+// Close when clicking outside
+document.addEventListener('click', e=>{
+  const wrap=document.getElementById('monthDropWrap');
+  if(wrap && !wrap.contains(e.target)) closeMonthPanel();
+});
+
+function selectFullYear(){
+  monthFilter=[1,2,3,4,5,6,7,8,9,10,11,12];
+  syncMonthUI();
+  applyFilters();
+  closeMonthPanel();
+}
+
+function toggleMonthRow(m){
+  const idx=monthFilter.indexOf(m);
+  if(idx>-1){
+    // Deselecting: if last one, reset to full year instead of empty state
+    if(monthFilter.length===1){
+      monthFilter=[1,2,3,4,5,6,7,8,9,10,11,12];
+      syncMonthUI();
+      applyFilters();
+      closeMonthPanel();
+      return;
+    }
+    monthFilter.splice(idx,1);
+  } else {
+    monthFilter.push(m);
+  }
+  monthFilter=[...new Set(monthFilter)].sort((a,b)=>a-b);
+  syncMonthUI();
+  applyFilters();
+  // Keep panel open so user can adjust multiple months
+}
+
+function syncMonthUI(){
+  const isFull = monthFilter.length===12;
+  // Full year row
+  const fullRow=document.querySelector('.mp-full');
+  if(fullRow) fullRow.classList.toggle('active', isFull);
+  // Individual month rows
+  document.querySelectorAll('#monthPanel .mp-row').forEach(row=>{
+    const m=Number(row.dataset.m);
+    row.classList.toggle('checked', monthFilter.includes(m));
+  });
+  // Trigger label + state
+  const trigger=document.getElementById('monthTrigger');
+  const label=document.getElementById('monthTriggerLabel');
+  if(isFull){
+    label.textContent='Año completo';
+    trigger.classList.remove('filtered');
+  } else {
+    label.textContent=buildTriggerLabel();
+    trigger.classList.add('filtered');
+  }
+  updateActivePeriodBadge();
+}
+
+function buildTriggerLabel(){
+  const n=monthFilter.length;
+  if(n===0) return '—';
+  if(n===1) return MONTH_SHORT[monthFilter[0]-1];
+  // Named ranges
+  if(n===3){
+    const q=Math.ceil(monthFilter[0]/3);
+    if(monthFilter[0]===(q-1)*3+1 &&
+       monthFilter[1]===monthFilter[0]+1 &&
+       monthFilter[2]===monthFilter[0]+2) return 'Q'+q;
+  }
+  if(n===6 && monthFilter[0]===1) return 'H1';
+  if(n===6 && monthFilter[0]===7) return 'H2';
+  if(monthFilter.every((m,i)=>m===i+1)) return 'YTD '+MONTH_SHORT[monthFilter[n-1]-1];
+  // Compact: first–last or "N meses"
+  if(n<=3) return monthFilter.map(m=>MONTH_SHORT[m-1]).join(', ');
+  return n+' meses';
+}
+
+function updateActivePeriodBadge(){
+  const badge=document.getElementById('activePeriodBadge');
+  if(!badge) return;
+  if(!RAW_DATA || RAW_DATA.fuente!=='libro_diario' || monthFilter.length===12){
+    badge.classList.remove('visible');
+    badge.textContent='';
+    return;
+  }
+  const yr=añoFilter!=='__all__'?(' · '+añoFilter):'';
+  badge.textContent=buildTriggerLabel()+yr;
+  badge.classList.add('visible');
+}
+
+// Legacy alias — called from restoreDemo
+function initMstrip(){ /* no-op: dropdown needs no init */ }
+
+function applyFilters(){
+  if(!RAW_DATA) return;
+  const año=añoFilter;
+  let mes=null;
+  if(RAW_DATA.fuente==='libro_diario' && monthFilter.length<12){
+    mes=[...monthFilter];
+  }
+  PL=computePL(RAW_DATA,{ año, mes });
+  render();
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
+// RENDER
+// ═════════════════════════════════════════════════════════════════════════════
+function render(){
+  if(!PL) return;
+  renderKPIs();
+  renderPLTable();
+  renderWaterfall();
+  renderMonthlyChart();
+  renderLineChart();
+  renderWarnings();
+  // Refresh validations if panel is open
+  if(document.getElementById('valDetail').style.display!=='none'){
+    renderValidations();
+  }
+}
+
+// ── KPIs ──────────────────────────────────────────────────────────────────
+function renderKPIs(){
+  const p=PL;
+  document.getElementById('kpiNR').textContent=fmtE(p.net_revenue);
+  document.getElementById('kpiGM').innerHTML=fmtPct(p.gm_pct);
+  document.getElementById('kpiGMamt').textContent=fmtE(p.gross_profit)+' Gross Profit';
+  document.getElementById('kpiCM').textContent=fmtPct(p.cm_pct);
+  document.getElementById('kpiCMamt').textContent=fmtE(p.cm)+' Contribution Margin';
+  document.getElementById('kpiEBITDA').textContent=fmtPct(p.ebitda_pct);
+  document.getElementById('kpiEBITDAamt').textContent=fmtE(p.ebitda)+' EBITDA';
+  const ni=p.net_income;
+  const niEl=document.getElementById('kpiNI');
+  niEl.textContent=fmtE(ni);
+  niEl.style.color=ni>=0?'#34d399':'#f87171';
+}
+
+function toggleBUView(){
+  if(!PL){ return; }
+  if(!PL.has_tag_bu){
+    showBanner('warn','Tag_BU no disponible en este archivo. Carga el Libro Diario con la columna Tag_BU para activar la vista por BU.');
+    return;
+  }
+  buViewActive=!buViewActive;
+  const btn=document.getElementById('buViewBtn');
+  if(btn) btn.style.background=buViewActive?'rgba(99,102,241,.3)':'';
+  renderPLTable();
+}
+
+// ── P&L Table ────────────────────────────────────────────────────────────
+function renderPLTable(){
+  const tbody=document.getElementById('plTableBody');
+  const thead=document.getElementById('plTableHead');
+  const p=PL;
+  const nr=p.net_revenue;
+  const showBU=buViewActive&&p.has_tag_bu&&p.bu_pl;
+
+  // ── Update thead ──────────────────────────────────────────────────────
+  if(showBU){
+    const BUS=['Partnership','PRs','Corporativo'];
+    const buColors={'Partnership':'#6366f1','PRs':'#10b981','Corporativo':'#94a3b8'};
+    thead.innerHTML=`<tr>
+      <th style="width:36px"></th>
+      <th>Concepto</th>
+      ${BUS.map(bu=>`<th class="num" style="color:${buColors[bu]}">${bu}</th>`).join('')}
+      <th class="num" style="color:#f4f4f5;border-left:1px solid rgba(255,255,255,.1)">Total</th>
+      <th class="num text-gray-500">% NR</th>
+    </tr>`;
+  } else {
+    thead.innerHTML=`<tr>
+      <th style="width:36px"></th>
+      <th>Concepto</th>
+      <th class="num">Importe (€)</th>
+      <th class="num">% NR</th>
+    </tr>`;
+  }
+
+  function pctBadge(v){
+    const pct=(v*100).toFixed(1)+'%';
+    const cls=v>=0.20?'green':v>=0.08?'amber':'red';
+    return `<span class="pct-badge ${cls}">${pct}</span>`;
+  }
+
+  const rows=[];
+  const detail=p.detail;
+  const colSpan=showBU?6:3;
+
+  function section(label){
+    rows.push(`<tr class="pl-row section-header"><td></td><td colspan="${colSpan}" style="padding-top:20px">${label}</td></tr>`);
+  }
+
+  // ── BU cell helpers ───────────────────────────────────────────────────
+  function buCells(getter, negate=false){
+    if(!showBU) return '';
+    return ['Partnership','PRs','Corporativo'].map(bu=>{
+      const val=getter(p.bu_pl[bu]);
+      const disp=negate?-val:val;
+      const cls=disp<0?'neg':disp>0?'neutral':'text-gray-500';
+      return `<td class="num ${cls}" style="opacity:.85">${fmtE(disp)}</td>`;
+    }).join('');
+  }
+
+  function subtotalRow(label, val, pct, getter=null, negate=false, isMain=false){
+    const cls=isMain?'grand':'subtotal';
+    const valColor=val>=0?'#f4f4f5':'#f87171';
+    const pctStr=nr>0&&isFinite(pct)?`${(pct*100).toFixed(1)}%`:'—';
+    const buPart=buCells(getter||(_=>0),negate);
+    const totalCell=showBU?`<td class="num" style="color:${valColor};border-left:1px solid rgba(255,255,255,.1)">${fmtE(val)}</td>`:'';
+    rows.push(`<tr class="pl-row ${cls}">
+      <td><button class="expand-btn" style="visibility:hidden">▶</button></td>
+      <td>${label}</td>
+      ${showBU?buPart+totalCell:`<td class="num" style="color:${valColor}">${fmtE(val)}</td>`}
+      <td class="num text-gray-400">${pctStr}</td>
+    </tr>`);
+  }
+
+  function detailRows(sectionKey, negate=false){
+    if(!expandedSections.has(sectionKey)) return;
+    const items=detail[sectionKey]||{};
+    for(const [cuenta,{line,importe,rows:rws}] of Object.entries(items)){
+      const disp=negate?-importe:importe;
+      const cls=disp<0?'neg':'neutral';
+      const mapping=ACCOUNT_MAPPING[cuenta]||{};
+      const tags=[];
+      if(mapping.phase2_dim1) tags.push(`<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(251,191,36,.15);color:#fbbf24;margin-left:4px">⬡ Dim1</span>`);
+      if(mapping.phase2_dim2) tags.push(`<span style="font-size:9px;padding:1px 5px;border-radius:3px;background:rgba(99,102,241,.15);color:#a5b4fc;margin-left:4px">⬡ Dim2</span>`);
+      const noteStr=mapping.note?`<div style="font-size:10px;color:rgba(255,255,255,.25);margin-top:1px">${mapping.note}</div>`:'';
+      // BU detail cells
+      let buDetailCells='';
+      if(showBU){
+        buDetailCells=['Partnership','PRs','Corporativo'].map(bu=>{
+          const buDetail=p.bu_pl[bu]?.detail?.[sectionKey.replace('MGMT_FEES_RAW','MGMT_FEES')]?.[cuenta];
+          const bv=buDetail?buDetail.importe:0;
+          const bd=negate?-bv:bv;
+          const bc=bd<0?'neg':bd!==0?'neutral':'text-gray-500';
+          return `<td class="num ${bc}" style="opacity:.8;font-size:11px">${bd!==0?fmtE(bd):'—'}</td>`;
+        }).join('');
+      }
+      const totalCell=showBU?`<td class="num ${cls}" style="border-left:1px solid rgba(255,255,255,.1)">${fmtE(disp)}</td>`:'';
+      rows.push(`<tr class="pl-row detail">
+        <td></td>
+        <td class="text-gray-400"><span>${line}</span>${tags.join('')}${noteStr}</td>
+        ${showBU?buDetailCells+totalCell:`<td class="num ${cls}">${fmtE(disp)}</td>`}
+        <td class="num text-gray-500">${nr>0&&isFinite(disp/nr)?(disp/nr*100).toFixed(1)+'%':'—'}</td>
+      </tr>`);
+    }
+  }
+
+  function mainRow(label, val, pct, sectionKey, sign=1, expandable=true, getter=null, negate=false){
+    const exp=expandable&&detail[sectionKey]&&Object.keys(detail[sectionKey]).length>0;
+    const isOpen=expandedSections.has(sectionKey);
+    const btnHtml=exp?`<button class="expand-btn" onclick="toggleSection('${sectionKey}')">${isOpen?'▼':'▶'}</button>`:'';
+    const displayVal=sign<0?-val:val;
+    const cls=displayVal<0?'neg':displayVal>0?'neutral':'text-gray-400';
+    const buPart=buCells(getter||((_)=>0),negate);
+    const totalCell=showBU?`<td class="num ${cls}" style="border-left:1px solid rgba(255,255,255,.1)">${fmtE(displayVal)}</td>`:'';
+    rows.push(`<tr class="pl-row">
+      <td>${btnHtml}</td>
+      <td>${label}</td>
+      ${showBU?buPart+totalCell:`<td class="num ${cls}">${fmtE(displayVal)}</td>`}
+      <td class="num text-gray-500">${nr>0&&pct!==null&&isFinite(pct)?(pct*100).toFixed(1)+'%':'—'}</td>
+    </tr>`);
+  }
+
+  // ── Net Revenue ──
+  section('INGRESOS');
+  mainRow('Net Revenue', p.net_revenue, 1, 'NR', 1, true, b=>b.net_revenue);
+  detailRows('NR');
+
+  // ── COGS ──
+  section('COSTES DIRECTOS DE PROYECTO');
+  mainRow('(−) COGS', p.cogs, p.cogs/nr, 'COGS', -1, true, b=>-b.cogs, true);
+  detailRows('COGS', true);
+  subtotalRow('GROSS PROFIT', p.gross_profit, p.gm_pct, b=>b.gross_profit);
+
+  // ── OPEX Dpto ──
+  section('OPEX DEPARTAMENTAL');
+  mainRow('(−) Personal + Software + Collab', p.opex_dpto, p.opex_dpto/nr, 'OPEX_DPTO', -1, true, b=>-b.opex_dpto, true);
+  detailRows('OPEX_DPTO', true);
+
+  // ── Mgmt Fees ──
+  section('MANAGEMENT FEES');
+  mainRow('(−) Founders (Mgmt Fees)', p.mgmt_fees, p.mgmt_fees/nr, 'MGMT_FEES', -1, true, b=>-b.mgmt_fees, true);
+  detailRows('MGMT_FEES', true);
+  subtotalRow('CONTRIBUTION MARGIN', p.cm, p.cm_pct, b=>b.cm);
+
+  // ── OPEX Estructura ──
+  section('OPEX ESTRUCTURA · G&A');
+  mainRow('(−) Gastos estructura', p.opex_est, p.opex_est/nr, 'OPEX_EST', -1, true, b=>-b.opex_est, true);
+  detailRows('OPEX_EST', true);
+  subtotalRow('EBITDA', p.ebitda, p.ebitda_pct, b=>b.ebitda);
+
+  // ── D&A ──
+  const daDisp=showBU?['Partnership','PRs','Corporativo'].map(bu=>`<td class="num neg" style="opacity:.8">${bu==='Corporativo'?fmtE(p.da):'—'}</td>`).join('')+`<td class="num neg" style="border-left:1px solid rgba(255,255,255,.1)">${fmtE(p.da)}</td>`:'';
+  rows.push(`<tr class="pl-row detail">
+    <td></td>
+    <td class="text-gray-400">(−) Amortizaciones (D&A)</td>
+    ${showBU?daDisp:`<td class="num neg">${fmtE(p.da)}</td>`}
+    <td class="num text-gray-500">${nr>0&&p.da>0?(p.da/nr*100).toFixed(1)+'%':'—'}</td>
+  </tr>`);
+  subtotalRow('EBIT', p.ebit, nr?p.ebit/nr:0, b=>b.ebit);
+
+  // ── Below EBIT ──
+  section('DEBAJO DEL EBIT');
+  mainRow('Resultado financiero', p.res_fin, null, 'FIN', 1, true, b=>b.res_fin);
+  detailRows('FIN');
+
+  const excBU=showBU?['Partnership','PRs','Corporativo'].map(bu=>`<td class="num ${p.bu_pl[bu].res_exc>=0?'pos':'neg'}" style="opacity:.8">${fmtE(p.bu_pl[bu].res_exc)}</td>`).join('')+`<td class="num ${p.res_exc>=0?'pos':'neg'}" style="border-left:1px solid rgba(255,255,255,.1)">${fmtE(p.res_exc)}</td>`:'';
+  rows.push(`<tr class="pl-row detail">
+    <td></td>
+    <td class="text-gray-400">Resultado excepcional</td>
+    ${showBU?excBU:`<td class="num ${p.res_exc>=0?'pos':'neg'}">${fmtE(p.res_exc)}</td>`}
+    <td class="num text-gray-500">—</td>
+  </tr>`);
+
+  const reconBU=showBU?['Partnership','PRs','Corporativo'].map(bu=>`<td class="num ${p.bu_pl[bu].recon>=0?'pos':'neg'}" style="opacity:.8">${fmtE(p.bu_pl[bu].recon)}</td>`).join('')+`<td class="num ${p.recon>=0?'pos':'neg'}" style="border-left:1px solid rgba(255,255,255,.1)">${fmtE(p.recon)}</td>`:'';
+  rows.push(`<tr class="pl-row detail">
+    <td></td>
+    <td class="text-gray-400" title="Ingresos intragrupo + otros ingresos no operativos + ajuste socios">Reconciliación (otros ingresos) ⓘ</td>
+    ${showBU?reconBU:`<td class="num ${p.recon>=0?'pos':'neg'}">${fmtE(p.recon)}</td>`}
+    <td class="num text-gray-500">—</td>
+  </tr>`);
+
+  // ── Net Income ──
+  const niColor=p.net_income>=0?'#34d399':'#f87171';
+  const niBU=showBU?['Partnership','PRs','Corporativo'].map(bu=>{
+    const ni=p.bu_pl[bu].net_income;
+    return `<td class="num" style="color:${ni>=0?'#34d399':'#f87171'};opacity:.85">${fmtE(ni)}</td>`;
+  }).join('')+`<td class="num" style="color:${niColor};border-left:1px solid rgba(255,255,255,.1)">${fmtE(p.net_income)}</td>`:'';
+  rows.push(`<tr class="pl-row grand">
+    <td></td>
+    <td style="font-size:15px">NET INCOME <span style="font-size:12px;color:rgba(255,255,255,.4);font-weight:400">(antes de impuestos)</span></td>
+    ${showBU?niBU:`<td class="num" style="color:${niColor};font-size:16px">${fmtE(p.net_income)}</td>`}
+    <td class="num text-gray-400">${nr>0&&isFinite(p.net_income/nr)?(p.net_income/nr*100).toFixed(1)+'%':'—'}</td>
+  </tr>`);
+
+  // ── BU footnote ──
+  if(showBU){
+    rows.push(`<tr><td colspan="7" style="padding:12px 0 4px;font-size:10px;color:rgba(255,255,255,.25)">
+      ⓘ  Lógica matricial Epígrafe × BU: NR y COGS se asignan por Tag_BU (col L). Personal (64*) se asigna por Tag (col K) → epígrafe y por Tag_BU (col L) → BU. Costes no etiquetables (OPEX Dpto cuentas, Mgmt Fees, OPEX Est, DA, FIN) van 100% a Corporativo.
+    </td></tr>`);
+  }
+
+  tbody.innerHTML=rows.join('');
+}
+
+function toggleSection(s){
+  if(expandedSections.has(s)) expandedSections.delete(s);
+  else expandedSections.add(s);
+  renderPLTable();
+}
+
+function expandAll(open){
+  const sections=['NR','COGS','OPEX_DPTO','MGMT_FEES','OPEX_EST','FIN','EXCEPCIONAL'];
+  sections.forEach(s=>open?expandedSections.add(s):expandedSections.delete(s));
+  renderPLTable();
+}
+
+// ── Waterfall ───────────────────────────────────────────────────────────
+function renderWaterfall(){
+  const p=PL;
+  const items=[
+    { label:'Net Revenue',          val:p.net_revenue,   color:'#6366f1', isStart:true },
+    { label:'(−) COGS',             val:-p.cogs,         color:'#f87171' },
+    { label:'Gross Profit',         val:p.gross_profit,  color:'#10b981', subtotal:true },
+    { label:'(−) OPEX Dpto',        val:-p.opex_dpto,    color:'#f87171' },
+    { label:'(−) Mgmt Fees',        val:-p.mgmt_fees,    color:'#f87171' },
+    { label:'Contribution Margin',  val:p.cm,            color:'#a855f7', subtotal:true },
+    { label:'(−) OPEX Estructura',  val:-p.opex_est,     color:'#f87171' },
+    { label:'EBITDA',               val:p.ebitda,        color:'#f59e0b', subtotal:true },
+    { label:'Net Income',           val:p.net_income,    color:p.net_income>=0?'#34d399':'#f87171', isEnd:true },
+  ];
+  const maxVal=p.net_revenue||1;
+  const html=items.map(it=>{
+    const pct=Math.min(Math.abs(it.val)/maxVal*100,100);
+    const valStr=fmtE(it.val);
+    const border=it.subtotal||it.isEnd||it.isStart?'font-weight:700':'';
+    return `<div class="wf-bar">
+      <div class="wf-label" style="${border}">${it.label}</div>
+      <div class="wf-track">
+        <div class="wf-fill" style="width:${pct.toFixed(1)}%;background:${it.color}40;border-left:3px solid ${it.color}"></div>
+      </div>
+      <div class="wf-val" style="color:${it.color}">${valStr}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('waterfallChart').innerHTML=html;
+}
+
+// ── Monthly Chart ────────────────────────────────────────────────────────
+function renderMonthlyChart(){
+  const ctx=document.getElementById('monthlyChart').getContext('2d');
+  if(chartMonthly){ chartMonthly.destroy(); chartMonthly=null; }
+  if(!PL.monthly||PL.monthly.length===0){
+    ctx.clearRect(0,0,ctx.canvas.width,ctx.canvas.height);
+    ctx.fillStyle='rgba(255,255,255,.2)';
+    ctx.font='13px Inter';
+    ctx.textAlign='center';
+    ctx.fillText('Mensualización disponible solo con Libro Diario',ctx.canvas.width/2,ctx.canvas.height/2);
+    return;
+  }
+  const months=['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const labels=PL.monthly.map(m=>months[m.mes-1]);
+  chartMonthly=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels,
+      datasets:[
+        { label:'Net Revenue', data:PL.monthly.map(m=>m.net_revenue),
+          backgroundColor:'rgba(99,102,241,.3)', borderColor:'#6366f1',
+          borderWidth:1.5, borderRadius:4, order:2, barPercentage:0.8 },
+        { label:'EBITDA', data:PL.monthly.map(m=>m.ebitda),
+          backgroundColor:'rgba(245,158,11,.5)', borderColor:'#f59e0b',
+          borderWidth:1.5, borderRadius:4, order:1, barPercentage:0.5 },
+        { label:'Contribution Margin', data:PL.monthly.map(m=>m.cm),
+          type:'line', borderColor:'#a855f7', backgroundColor:'transparent',
+          borderWidth:2, pointRadius:3, pointBackgroundColor:'#a855f7',
+          tension:.35, order:0 },
+      ]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ labels:{ color:'rgba(255,255,255,.6)', font:{family:'Inter',size:11}, boxWidth:12, padding:16 } },
+        tooltip:{ callbacks:{ label:c=>`${c.dataset.label}: ${fmtE(c.parsed.y)}` } }
+      },
+      scales:{
+        x:{ ticks:{ color:'rgba(255,255,255,.5)', font:{size:11} }, grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{ ticks:{ color:'rgba(255,255,255,.5)', font:{size:11}, callback:v=>`${fmtK(v)}€` }, grid:{ color:'rgba(255,255,255,.06)' } }
+      }
+    }
+  });
+}
+
+// ── Line of Business Chart ───────────────────────────────────────────────
+function renderLineChart(){
+  const ctx=document.getElementById('lineChart').getContext('2d');
+  if(chartLine){ chartLine.destroy(); chartLine=null; }
+  const bl=PL.by_line;
+  const total=PL.net_revenue||1;
+  chartLine=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:['Partnership Cuentas','Partnership Talento','PRs','Corporativo / Otros'],
+      datasets:[{
+        data:[bl.cuentas,bl.talento,bl.prs,bl.corp],
+        backgroundColor:['rgba(99,102,241,.6)','rgba(168,85,247,.6)','rgba(16,185,129,.6)','rgba(156,163,175,.4)'],
+        borderColor:['#6366f1','#a855f7','#10b981','rgba(156,163,175,.6)'],
+        borderWidth:1.5, borderRadius:6,
+      }]
+    },
+    options:{
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      plugins:{
+        legend:{ display:false },
+        tooltip:{ callbacks:{ label:c=>`${fmtE(c.parsed.x)} · ${(c.parsed.x/total*100).toFixed(1)}%` } }
+      },
+      scales:{
+        x:{ ticks:{ color:'rgba(255,255,255,.5)', font:{size:11}, callback:v=>`${fmtK(v)}€` }, grid:{ color:'rgba(255,255,255,.04)' } },
+        y:{ ticks:{ color:'rgba(255,255,255,.65)', font:{size:12} }, grid:{ display:false } }
+      }
+    }
+  });
+}
+
+// ── Warnings ─────────────────────────────────────────────────────────────
+function renderWarnings(){
+  const box=document.getElementById('warningsBox');
+  const list=document.getElementById('warningsList');
+  if(!PL.warnings||PL.warnings.length===0){ box.classList.add('hidden'); return; }
+  box.classList.remove('hidden');
+  list.innerHTML=PL.warnings.map(w=>`<p class="text-xs text-gray-500">${w}</p>`).join('');
+}
+
+// ── Validation banner ─────────────────────────────────────────────────────
+function showBanner(type, msg){
+  const b=document.getElementById('valBanner');
+  b.className='val-banner '+type;
+  document.getElementById('valIcon').textContent=type==='ok'?'✓':type==='warn'?'⚠':'✗';
+  document.getElementById('valMsg').textContent=msg;
+  b.classList.remove('hidden');
+}
+
+// ── Sprint 3: Validation panel ────────────────────────────────────────────
+function toggleValDetail(){
+  const d=document.getElementById('valDetail');
+  const isHidden=d.style.display==='none';
+  d.style.display=isHidden?'block':'none';
+  if(isHidden) renderValidations();
+}
+
+function runValidation(){
+  const refs={};
+  const nr=parseFloat(document.getElementById('refNR').value)||null;
+  const ni=parseFloat(document.getElementById('refNI').value)||null;
+  const eb=parseFloat(document.getElementById('refEBIT').value)||null;
+  if(nr) refs.net_revenue=nr;
+  if(ni) refs.net_income=ni;
+  if(eb) refs.resultado_explotacion=eb;
+  renderValidations(refs);
+  document.getElementById('valDetail').style.display='block';
+}
+
+function renderValidations(holded_refs={}){
+  if(!PL) return;
+  const p=PL;
+  const checks=[];
+  const r2=x=>Math.round((+x+Number.EPSILON)*100)/100;
+
+  function chk(label, modelo, ref, tol=1, critical=false, note=''){
+    if(ref===null||ref===undefined){
+      checks.push({label, modelo, ref:'N/A', diff:null, ok:true, note});
+      return;
+    }
+    const diff=r2(modelo-ref);
+    const ok=Math.abs(diff)<=tol;
+    checks.push({label, modelo, ref, diff, ok, critical:critical&&!ok, note});
+  }
+
+  // Internal coherence checks
+  chk('GP = NR − COGS', p.gross_profit, r2(p.net_revenue-p.cogs));
+  chk('CM = GP − OPEX Dpto − Mgmt Fees', p.cm, r2(p.gross_profit-p.opex_dpto-p.mgmt_fees));
+  chk('EBITDA = CM − OPEX Estructura', p.ebitda, r2(p.cm-p.opex_est));
+  chk('EBIT = EBITDA − D&A', p.ebit, r2(p.ebitda-p.da));
+  chk('Net Income = EBIT + Fin + Exc + Rec', p.net_income,
+      r2(p.ebit+p.res_fin+p.res_exc+p.recon));
+  chk('Personal total = sum(sub-líneas)',
+      p.personal_total,
+      r2((p.personal_partner_pr||0)+(p.personal_comms||0)+(p.personal_prod||0)+(p.personal_admin||0)),
+      1, true);
+  // Matrix check: BU personal sum = total (only meaningful if bu_pl populated)
+  if(p.bu_pl){
+    const bu_pers_sum=r2((p.bu_pl['Partnership']?.personal_total||0)+(p.bu_pl['PRs']?.personal_total||0)+(p.bu_pl['Corporativo']?.personal_total||0));
+    chk('Personal matrix: ΣBU = Total',bu_pers_sum,p.personal_total,1,true);
+  }
+
+  // Holded reference checks
+  if(holded_refs.net_revenue!=null)
+    chk('Net Revenue vs Holded', p.net_revenue, holded_refs.net_revenue, 1, true);
+  if(holded_refs.net_income!=null)
+    chk('Net Income vs Holded — CLAVE', p.net_income, holded_refs.net_income,
+        p.fuente==='libro_diario'?1500:1, true);
+  if(holded_refs.resultado_explotacion!=null){
+    const expected=r2(holded_refs.resultado_explotacion - p.recon);
+    chk('EBIT vs Resultado Explotación Holded (diff = reconciliación)',
+        p.ebit, expected, 10, false,
+        'La diferencia esperada es la reconciliación (intragrupo + no op + ajuste socios)');
+  }
+
+  // Render
+  const all_ok=checks.every(c=>c.ok);
+  const critical=checks.filter(c=>c.critical).length;
+
+  const html=checks.map(c=>{
+    const icon=c.ok?'✓':(c.critical?'✗':'⚠');
+    const color=c.ok?'#34d399':(c.critical?'#f87171':'#fbbf24');
+    const diffStr=c.diff!==null?` <span style="color:rgba(255,255,255,.35);font-size:11px">(diff: ${c.diff>0?'+':''}${c.diff})</span>`:'';
+    const noteStr=c.note?`<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">${c.note}</div>`:'';
+    return `<div style="display:flex;align-items:flex-start;gap:8px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)">
+      <span style="color:${color};font-size:13px;flex-shrink:0;margin-top:1px">${icon}</span>
+      <div style="flex:1;font-size:12px">
+        <span style="color:rgba(255,255,255,.75)">${c.label}</span>${diffStr}
+        ${noteStr}
+      </div>
+      <span style="font-size:11px;color:rgba(255,255,255,.4);font-variant-numeric:tabular-nums">
+        ${c.ref==='N/A'?'—':typeof c.ref==='number'?fmtE(c.ref):''}
+      </span>
+    </div>`;
+  }).join('');
+
+  const summary=all_ok
+    ?`<div class="val-banner ok" style="margin-bottom:12px">✓ Todos los checks pasan</div>`
+    :`<div class="val-banner ${critical?'err':'warn'}" style="margin-bottom:12px">${critical?'✗':'⚠'} ${critical} checks críticos · ${checks.filter(c=>!c.ok).length} total fallidos</div>`;
+
+  document.getElementById('valChecks').innerHTML=summary+html;
+}
+
+// ── Sprint 3: Export HTML ─────────────────────────────────────────────────
+function exportHTML(){
+  if(!RAW_DATA || !_xlsxBuffer){
+    alert('No hay datos cargados para exportar.');
+    return;
+  }
+
+  // ── Encode xlsx as base64 (chunked to avoid call-stack overflow) ──────────
+  const bytes = new Uint8Array(_xlsxBuffer);
+  let binary  = '';
+  const CHUNK = 8192;
+  for(let i=0;i<bytes.length;i+=CHUNK){
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i+CHUNK));
+  }
+  const b64 = btoa(binary);
+
+  // ── Snapshot current filter + UI state ────────────────────────────────────
+  const snapAño  = añoFilter;
+  const snapMths = JSON.stringify(monthFilter);
+  const snapBU   = buViewActive;
+  const snapExp  = JSON.stringify([...expandedSections]);
+
+  // ── Serialize as text (index.html approach) ───────────────────────────────
+  // Use outerHTML as a text template, then do regex replacements to bake in
+  // the data and state — same pattern as the reference index.html.
+  // This preserves all <canvas> elements, all event handlers, all script tags
+  // exactly as-is. The viewer is the same file with different variable values.
+  let out = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+
+  // 1. Inject embedded xlsx buffer (replaces: let _xlsxBuffer = null;)
+  out = out.replace(
+    /let _xlsxBuffer\s*=\s*null[^;]*;/,
+    'let _xlsxBuffer = (function(){' +
+      'var b="' + b64 + '";' +
+      'var bin=atob(b),buf=new ArrayBuffer(bin.length),v=new Uint8Array(buf);' +
+      'for(var i=0;i<bin.length;i++)v[i]=bin.charCodeAt(i);' +
+      'return buf;' +
+    '})();'
+  );
+
+  // 2. Inject filename (replaces: let _xlsxFilename = '';)
+  out = out.replace(
+    /let _xlsxFilename\s*=\s*'[^']*';/,
+    'let _xlsxFilename = ' + JSON.stringify(_xlsxFilename + ' (viewer)') + ';'
+  );
+
+  // 3. Inject filter state
+  out = out.replace(
+    /let añoFilter\s*=\s*'[^']*';/,
+    "let añoFilter   = " + JSON.stringify(snapAño) + ";"
+  );
+  out = out.replace(
+    /let monthFilter\s*=\s*\[[^\]]*\];/,
+    "let monthFilter = " + snapMths + ";"
+  );
+  out = out.replace(
+    /let buViewActive\s*=\s*(true|false);/,
+    "let buViewActive = " + snapBU + ";"
+  );
+  out = out.replace(
+    /let expandedSections\s*=\s*new Set\([^)]*\);/,
+    "let expandedSections = new Set(" + snapExp + ");"
+  );
+
+  // 4. Inject viewer auto-start: replace the final initMstrip() call with an
+  //    extended block that also boots the dashboard from embedded data.
+  //    (initMstrip itself is still called — it's a no-op but harmless)
+  out = out.replace(
+    '// Init mstrip click handlers on DOM ready\ninitMstrip();',
+    [
+      '// Init mstrip click handlers on DOM ready',
+      'initMstrip();',
+      '',
+      '// ── Viewer auto-start (injected by exportHTML) ──────────────────────',
+      '(function viewerBoot(){',
+      '  if(!_xlsxBuffer) return; // not a viewer — normal dashboard load',
+      '  function tryBoot(){',
+      '    if(typeof XLSX===\'undefined\'||typeof detectAndParse===\'undefined\'){',
+      '      setTimeout(tryBoot,80); return;',
+      '    }',
+      '    try{',
+      '      var wb=XLSX.read(_xlsxBuffer,{type:\'array\',cellDates:true});',
+      '      RAW_DATA=detectAndParse(wb);',
+      '      // filter state already set by variable injection above',
+      '      var años=[...new Set(RAW_DATA.rows.filter(function(r){return r.año!==null;})',
+      '        .map(function(r){return r.año;}))].sort(function(a,b){return a-b;});',
+      '      buildYearSelect(años);',
+      '      syncMonthUI();',
+      '      var buBtn=document.getElementById(\'buViewBtn\');',
+      '      if(buBtn) buBtn.style.background=buViewActive?\'rgba(99,102,241,.3)\':\'\';',
+      '      document.getElementById(\'uploadZone\').style.display=\'none\';',
+      '      document.getElementById(\'dashboard\').classList.remove(\'hidden\');',
+      '      document.getElementById(\'periodFilter\').classList.add(\'visible\');',
+      '      document.getElementById(\'periodSep\').style.display=\'\';',
+      '      document.getElementById(\'dataSourceChip\').classList.remove(\'hidden\');',
+      '      setSourceChip(RAW_DATA.fuente,_xlsxFilename);',
+      '      applyFilters();',
+      '      showBanner(\'ok\',\'Viewer · \'+RAW_DATA.rows.length.toLocaleString(\'es-ES\')+\' líneas\');',
+      '    }catch(e){',
+      '      console.error(\'viewer boot:\',e);',
+      '      var b=document.getElementById(\'valBanner\');',
+      '      if(b){b.className=\'val-banner err\';b.classList.remove(\'hidden\');',
+      '        document.getElementById(\'valIcon\').textContent=\'\u2717\';',
+      '        document.getElementById(\'valMsg\').textContent=\'Error viewer: \'+e.message;}',
+      '    }',
+      '  }',
+      '  if(document.readyState===\'loading\'){',
+      '    document.addEventListener(\'DOMContentLoaded\',tryBoot);',
+      '  } else { tryBoot(); }',
+      '})();',
+    ].join('\n')
+  );
+
+  // ── Download ───────────────────────────────────────────────────────────────
+  const blob = new Blob([out], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'lexa_pl_' + new Date().toISOString().slice(0,10) + '_viewer.html';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url), 2000);
+}
+function restoreDemo(){
+  document.getElementById('uploadZone').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('restoreBtn').classList.add('hidden');
+  document.getElementById('exportBtn').classList.add('hidden');
+  document.getElementById('valToggleBtn').classList.add('hidden');
+  document.getElementById('dataSourceChip').classList.add('hidden');
+  document.getElementById('valBanner').classList.add('hidden');
+  document.getElementById('valDetail').style.display='none';
+  document.getElementById('holdedRefPanel').classList.add('hidden');
+  añoFilter='__all__';
+  const yearSelect=document.getElementById('yearSelectInline');
+  if(yearSelect){
+    yearSelect.innerHTML='<option value="__all__">Todos</option>';
+    yearSelect.value='__all__';
+  }
+  monthFilter=[1,2,3,4,5,6,7,8,9,10,11,12];
+  document.getElementById('periodFilter').classList.remove('visible');
+  document.getElementById('periodSep').style.display='none';
+  RAW_DATA=null; PL=null;
+  syncMonthUI();
+  if(chartMonthly){chartMonthly.destroy();chartMonthly=null;}
+  if(chartLine){chartLine.destroy();chartLine=null;}
+}
+
+// Init mstrip click handlers on DOM ready
+initMstrip();
+</script>
+</body>
+</html>
