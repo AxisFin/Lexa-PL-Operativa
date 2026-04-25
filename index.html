@@ -227,11 +227,11 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
         <div class="period-sep"></div>
         <!-- Month multi-select dropdown -->
         <div id="monthDropWrap">
-          <div id="monthTrigger" onclick="toggleMonthPanel()">
-            <span id="monthTriggerLabel">Año completo</span>
+          <div id="monthTrigger" onclick="toggleMonthPanel()" class="filtered">
+            <span id="monthTriggerLabel">YTD Abr</span>
           </div>
-          <div id="monthPanel">
-            <div class="mp-full active" onclick="selectFullYear()">
+          <div id="monthPanel" class="">
+            <div class="mp-full" onclick="selectFullYear()">
               <div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div>
               <span>Año completo</span>
             </div>
@@ -239,14 +239,14 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
             <div class="mp-row checked" data-m="2" onclick="toggleMonthRow(2)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Febrero</span></div>
             <div class="mp-row checked" data-m="3" onclick="toggleMonthRow(3)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Marzo</span></div>
             <div class="mp-row checked" data-m="4" onclick="toggleMonthRow(4)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Abril</span></div>
-            <div class="mp-row checked" data-m="5" onclick="toggleMonthRow(5)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Mayo</span></div>
-            <div class="mp-row checked" data-m="6" onclick="toggleMonthRow(6)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Junio</span></div>
-            <div class="mp-row checked" data-m="7" onclick="toggleMonthRow(7)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Julio</span></div>
-            <div class="mp-row checked" data-m="8" onclick="toggleMonthRow(8)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Agosto</span></div>
-            <div class="mp-row checked" data-m="9" onclick="toggleMonthRow(9)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Septiembre</span></div>
-            <div class="mp-row checked" data-m="10" onclick="toggleMonthRow(10)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Octubre</span></div>
-            <div class="mp-row checked" data-m="11" onclick="toggleMonthRow(11)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Noviembre</span></div>
-            <div class="mp-row checked" data-m="12" onclick="toggleMonthRow(12)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Diciembre</span></div>
+            <div class="mp-row" data-m="5" onclick="toggleMonthRow(5)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Mayo</span></div>
+            <div class="mp-row" data-m="6" onclick="toggleMonthRow(6)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Junio</span></div>
+            <div class="mp-row" data-m="7" onclick="toggleMonthRow(7)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Julio</span></div>
+            <div class="mp-row" data-m="8" onclick="toggleMonthRow(8)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Agosto</span></div>
+            <div class="mp-row" data-m="9" onclick="toggleMonthRow(9)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Septiembre</span></div>
+            <div class="mp-row" data-m="10" onclick="toggleMonthRow(10)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Octubre</span></div>
+            <div class="mp-row" data-m="11" onclick="toggleMonthRow(11)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Noviembre</span></div>
+            <div class="mp-row" data-m="12" onclick="toggleMonthRow(12)"><div class="mp-check"><svg class="mp-check-icon" viewBox="0 0 8 8" fill="none"><path d="M1 4l2 2 4-4" stroke="#fff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg></div><span>Diciembre</span></div>
           </div>
         </div>
       </div>
@@ -310,35 +310,35 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
       <div class="glass-card kpi-card indigo secondary">
         <div class="kpi-label">Net Revenue</div>
         <div class="kpi-value" id="kpiNR">1.132.324&nbsp;€</div>
-        <div id="kpiNRyoy" class="kpi-yoy down" style="display: inline-flex;">▼ 67% vs año ant.</div>
-        <div class="kpi-sub" id="kpiNRsub">vs 3.426.956&nbsp;€ (2025)</div>
+        <div id="kpiNRyoy" class="kpi-yoy up" style="display: inline-flex;">▲ 18% vs año ant.</div>
+        <div class="kpi-sub" id="kpiNRsub">vs 961.770&nbsp;€ (2025)</div>
       </div>
       <!-- SECONDARY: Gross Margin -->
       <div class="glass-card kpi-card emerald secondary">
         <div class="kpi-label">Gross Margin</div>
         <div class="kpi-value" id="kpiGM">53.0%</div>
-        <div id="kpiGMyoy" class="kpi-yoy down" style="display: inline-flex;">▼ 53% vs año ant.</div>
+        <div id="kpiGMyoy" class="kpi-yoy up" style="display: inline-flex;">▲ 58% vs año ant.</div>
         <div class="kpi-sub" id="kpiGMamt">594.680&nbsp;€ Gross Profit</div>
       </div>
       <!-- SECONDARY: Contribution Margin -->
       <div class="glass-card kpi-card amber secondary">
         <div class="kpi-label">Contribution Margin</div>
         <div class="kpi-value" id="kpiCM">36.0%</div>
-        <div id="kpiCMyoy" class="kpi-yoy down" style="display: inline-flex;">▼ 63% vs año ant.</div>
+        <div id="kpiCMyoy" class="kpi-yoy up" style="display: inline-flex;">▲ 24% vs año ant.</div>
         <div class="kpi-sub" id="kpiCMamt">403.966&nbsp;€ Contribution Margin</div>
       </div>
       <!-- PRIMARY: EBITDA -->
       <div class="glass-card kpi-card purple secondary">
         <div class="kpi-label">EBITDA</div>
         <div class="kpi-value" id="kpiEBITDA">27.0%</div>
-        <div id="kpiEBITDAyoy" class="kpi-yoy down" style="display: inline-flex;">▼ 23% vs año ant.</div>
+        <div id="kpiEBITDAyoy" class="kpi-yoy up" style="display: inline-flex;">▲ 158% vs año ant.</div>
         <div class="kpi-sub" id="kpiEBITDAamt">310.352&nbsp;€ EBITDA</div>
       </div>
       <!-- SECONDARY: EBT -->
       <div class="glass-card kpi-card pink secondary">
         <div class="kpi-label">EBT</div>
         <div class="kpi-value" id="kpiNI" style="color: rgb(52, 211, 153);">312.628&nbsp;€</div>
-        <div id="kpiNIyoy" class="kpi-yoy down" style="display: inline-flex;">▼ 18% vs año ant.</div>
+        <div id="kpiNIyoy" class="kpi-yoy up" style="display: inline-flex;">▲ 158% vs año ant.</div>
         <div class="kpi-sub">Earnings Before Tax</div>
       </div>
     </div>
@@ -351,7 +351,7 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
           <h4 class="text-xl font-semibold">Evolución mensual</h4>
           <span class="text-xs text-gray-400" id="chartSubtitle">NR · EBITDA</span>
         </div>
-        <div style="height:280px"><canvas id="monthlyChart" height="420" style="display: block; box-sizing: border-box; height: 280px; width: 531px;" width="796"></canvas></div>
+        <div style="height:280px"><canvas id="monthlyChart" style="box-sizing: border-box; display: block; height: 280px; width: 531px;" width="796" height="420"></canvas></div>
       </div>
 
       <!-- Waterfall P&L -->
@@ -424,7 +424,7 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
         <h4 class="text-xl font-semibold">Ingresos por línea de negocio</h4>
         <span class="text-xs text-gray-400">% sobre Net Revenue</span>
       </div>
-      <div id="byLineChart" style="height:180px"><canvas id="lineChart" height="270" style="display: block; box-sizing: border-box; height: 180px; width: 1143.3px;" width="1715"></canvas></div>
+      <div id="byLineChart" style="height:180px"><canvas id="lineChart" style="box-sizing: border-box; display: block; height: 180px; width: 1143.3px;" width="1715" height="270"></canvas></div>
     </div>
 
     <!-- P&L Table -->
@@ -432,7 +432,7 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
       <div class="flex items-center justify-between mb-6 flex-wrap gap-4">
         <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
           <h4 class="text-xl font-semibold">P&amp;L Operativa — Detalle</h4>
-          <span id="activePeriodBadge"></span>
+          <span id="activePeriodBadge" class="visible">YTD Abr · 2026</span>
         </div>
         <p class="text-xs text-gray-400 mt-1">Haz clic en ▶ para expandir el detalle de cada sección</p>
         <div class="flex gap-2">
@@ -461,85 +461,85 @@ select{background:#111;border:1px solid rgba(255,255,255,.12);border-radius:.5re
       <td>Net Revenue</td>
       <td class="num neutral">1.132.324&nbsp;€</td><td class="num text-gray-500">100.0%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">2.294.632&nbsp;€</td><td class="yoy-abs dn">67.0%</td><td class="col-sep"></td><td class="budget-val">4.657.378&nbsp;€</td><td class="budget-delta under">3.525.054&nbsp;€</td><td class="budget-delta under">75.7%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+170.554&nbsp;€</td><td class="yoy-abs up">+17.7%</td><td class="col-sep"></td><td class="budget-val">1.463.042&nbsp;€</td><td class="budget-delta under">330.718&nbsp;€</td><td class="budget-delta under">22.6%</td>
     </tr><tr class="pl-row section-header"><td></td><td colspan="11" style="padding-top:20px">COSTES DIRECTOS DE PROYECTO</td></tr><tr class="pl-row">
       <td><button class="expand-btn" onclick="toggleSection('COGS')">▶</button></td>
       <td>(−) COGS</td>
       <td class="num neg">-537.644&nbsp;€</td><td class="num text-gray-500">47.5%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs up">+1.626.379&nbsp;€</td><td class="yoy-abs up">+75.2%</td><td class="col-sep"></td><td class="budget-val">-2.883.974&nbsp;€</td><td class="budget-delta over">+2.346.330&nbsp;€</td><td class="budget-delta over">+81.4%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+48.287&nbsp;€</td><td class="yoy-abs up">+8.2%</td><td class="col-sep"></td><td class="budget-val">-908.548&nbsp;€</td><td class="budget-delta over">+370.904&nbsp;€</td><td class="budget-delta over">+40.8%</td>
     </tr><tr class="pl-row subtotal">
       <td><button class="expand-btn" style="visibility:hidden">▶</button></td>
       <td>GROSS PROFIT</td>
       <td class="num" style="color:#f4f4f5">594.680&nbsp;€</td><td class="num text-gray-400">53.0%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">668.253&nbsp;€</td><td class="yoy-abs dn">52.9%</td><td class="col-sep"></td><td class="budget-val">1.773.404&nbsp;€</td><td class="budget-delta under">1.178.724&nbsp;€</td><td class="budget-delta under">66.5%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+218.841&nbsp;€</td><td class="yoy-abs up">+58.2%</td><td class="col-sep"></td><td class="budget-val">554.494&nbsp;€</td><td class="budget-delta over">+40.186&nbsp;€</td><td class="budget-delta over">+7.2%</td>
     </tr><tr class="pl-row section-header"><td></td><td colspan="11" style="padding-top:20px">OPEX DEPARTAMENTAL</td></tr><tr class="pl-row">
       <td><button class="expand-btn" onclick="toggleSection('OPEX_DPTO')">▶</button></td>
       <td>(−) Personal + Software + Collab</td>
       <td class="num neg">-129.592&nbsp;€</td><td class="num text-gray-500">11.4%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">93.339&nbsp;€</td><td class="yoy-abs dn">257.5%</td><td class="col-sep"></td><td class="budget-val">-734.183&nbsp;€</td><td class="budget-delta over">+604.590&nbsp;€</td><td class="budget-delta over">+82.3%</td>
+      <td class="col-sep"></td><td class="yoy-abs dn">120.237&nbsp;€</td><td class="yoy-abs dn">1285.2%</td><td class="col-sep"></td><td class="budget-val">-243.728&nbsp;€</td><td class="budget-delta over">+114.135&nbsp;€</td><td class="budget-delta over">+46.8%</td>
     </tr><tr class="pl-row section-header"><td></td><td colspan="11" style="padding-top:20px">MANAGEMENT FEES</td></tr><tr class="pl-row">
       <td><button class="expand-btn" onclick="toggleSection('MGMT_FEES')">▶</button></td>
       <td>(−) Founders (Mgmt Fees)</td>
       <td class="num neg">-61.122&nbsp;€</td><td class="num text-gray-500">5.4%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs up">+73.956&nbsp;€</td><td class="yoy-abs up">+54.8%</td><td class="col-sep"></td><td class="budget-val">-127.420&nbsp;€</td><td class="budget-delta over">+66.298&nbsp;€</td><td class="budget-delta over">+52.0%</td>
+      <td class="col-sep"></td><td class="yoy-abs dn">21.649&nbsp;€</td><td class="yoy-abs dn">54.8%</td><td class="col-sep"></td><td class="budget-val">-42.473&nbsp;€</td><td class="budget-delta under">18.649&nbsp;€</td><td class="budget-delta under">43.9%</td>
     </tr><tr class="pl-row subtotal">
       <td><button class="expand-btn" style="visibility:hidden">▶</button></td>
       <td>CONTRIBUTION MARGIN&nbsp;<span title="Gross Profit menos OPEX Departamental y Management Fees. Mide el margen real de las líneas de negocio antes de estructura corporativa." style="cursor:default;color:rgba(255,255,255,.25);font-size:12px;font-weight:400">ⓘ</span></td>
       <td class="num" style="color:#f4f4f5">403.966&nbsp;€</td><td class="num text-gray-400">36.0%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">687.636&nbsp;€</td><td class="yoy-abs dn">63.0%</td><td class="col-sep"></td><td class="budget-val">911.801&nbsp;€</td><td class="budget-delta under">507.835&nbsp;€</td><td class="budget-delta under">55.7%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+76.954&nbsp;€</td><td class="yoy-abs up">+23.5%</td><td class="col-sep"></td><td class="budget-val">268.293&nbsp;€</td><td class="budget-delta over">+135.672&nbsp;€</td><td class="budget-delta over">+50.6%</td>
     </tr><tr class="pl-row section-header"><td></td><td colspan="11" style="padding-top:20px">OPEX ESTRUCTURA · G&amp;A</td></tr><tr class="pl-row">
       <td><button class="expand-btn" onclick="toggleSection('OPEX_EST')">▶</button></td>
       <td>(−) Gastos estructura</td>
       <td class="num neg">-93.613&nbsp;€</td><td class="num text-gray-500">8.3%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs up">+594.772&nbsp;€</td><td class="yoy-abs up">+86.4%</td><td class="col-sep"></td><td class="budget-val">-253.000&nbsp;€</td><td class="budget-delta over">+159.387&nbsp;€</td><td class="budget-delta over">+63.0%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+113.332&nbsp;€</td><td class="yoy-abs up">+54.8%</td><td class="col-sep"></td><td class="budget-val">-92.333&nbsp;€</td><td class="budget-delta under">1.280&nbsp;€</td><td class="budget-delta under">1.4%</td>
     </tr><tr class="pl-row subtotal">
       <td><button class="expand-btn" style="visibility:hidden">▶</button></td>
       <td>EBITDA</td>
       <td class="num" style="color:#f4f4f5">310.352&nbsp;€</td><td class="num text-gray-400">27.0%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">92.864&nbsp;€</td><td class="yoy-abs dn">23.0%</td><td class="col-sep"></td><td class="budget-val">658.801&nbsp;€</td><td class="budget-delta under">348.449&nbsp;€</td><td class="budget-delta under">52.9%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+190.286&nbsp;€</td><td class="yoy-abs up">+158.5%</td><td class="col-sep"></td><td class="budget-val">175.960&nbsp;€</td><td class="budget-delta over">+134.392&nbsp;€</td><td class="budget-delta over">+76.4%</td>
     </tr><tr class="pl-row detail">
     <td></td>
     <td class="text-gray-400">(−) Amortizaciones (D&amp;A)</td>
     <td class="num neg">5.309&nbsp;€</td><td class="num text-gray-500">0.5%</td>
     
-    <td class="col-sep"></td><td class="yoy-abs dn">15.928&nbsp;€</td><td class="yoy-abs dn">75.0%</td><td class="col-sep"></td><td class="budget-val">-22.000&nbsp;€</td><td class="budget-delta over">+16.691&nbsp;€</td><td class="budget-delta over">+75.9%</td>
+    <td class="col-sep"></td><td class="yoy-abs dn">1.770&nbsp;€</td><td class="yoy-abs dn">25.0%</td><td class="col-sep"></td><td class="budget-val">-7.333&nbsp;€</td><td class="budget-delta over">+2.024&nbsp;€</td><td class="budget-delta over">+27.6%</td>
   </tr><tr class="pl-row subtotal">
       <td><button class="expand-btn" style="visibility:hidden">▶</button></td>
       <td>EBIT</td>
       <td class="num" style="color:#f4f4f5">305.043&nbsp;€</td><td class="num text-gray-400">26.9%</td>
       
-      <td class="col-sep"></td><td class="yoy-abs dn">76.936&nbsp;€</td><td class="yoy-abs dn">20.1%</td><td class="col-sep"></td><td class="budget-val">636.801&nbsp;€</td><td class="budget-delta under">331.758&nbsp;€</td><td class="budget-delta under">52.1%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+192.056&nbsp;€</td><td class="yoy-abs up">+170.0%</td><td class="col-sep"></td><td class="budget-val">168.627&nbsp;€</td><td class="budget-delta over">+136.416&nbsp;€</td><td class="budget-delta over">+80.9%</td>
     </tr><tr class="pl-row section-header"><td></td><td colspan="11" style="padding-top:20px">DEBAJO DEL EBIT</td></tr><tr class="pl-row">
       <td><button class="expand-btn" onclick="toggleSection('FIN')">▶</button></td>
       <td>Resultado financiero</td>
       <td class="num neg">-3.535&nbsp;€</td><td class="num text-gray-500">—</td>
       
-      <td class="col-sep"></td><td class="yoy-abs up">+19.338&nbsp;€</td><td class="yoy-abs up">+84.5%</td><td class="col-sep"></td><td class="budget-val">-22.000&nbsp;€</td><td class="budget-delta over">+18.465&nbsp;€</td><td class="budget-delta over">+83.9%</td>
+      <td class="col-sep"></td><td class="yoy-abs up">+680&nbsp;€</td><td class="yoy-abs up">+16.1%</td><td class="col-sep"></td><td class="budget-val">-7.333&nbsp;€</td><td class="budget-delta over">+3.798&nbsp;€</td><td class="budget-delta over">+51.8%</td>
     </tr><tr class="pl-row detail">
     <td></td>
     <td class="text-gray-400">Resultado excepcional</td>
     <td class="num pos">169&nbsp;€</td><td class="num text-gray-500">—</td>
     
-    <td class="col-sep"></td><td class="yoy-abs up">+8.748&nbsp;€</td><td class="yoy-abs up">+102.0%</td><td class="col-sep"></td><td class="budget-val">—</td><td class="budget-delta flat">—</td><td class="budget-delta flat">—</td>
+    <td class="col-sep"></td><td class="yoy-abs dn">1.840&nbsp;€</td><td class="yoy-abs dn">91.6%</td><td class="col-sep"></td><td class="budget-val">—</td><td class="budget-delta flat">—</td><td class="budget-delta flat">—</td>
   </tr><tr class="pl-row detail">
     <td></td>
     <td class="text-gray-400" title="Ingresos intragrupo + otros ingresos no operativos + ajuste socios">Reconciliación (otros ingresos) ⓘ</td>
     <td class="num pos">10.952&nbsp;€</td><td class="num text-gray-500">—</td>
     
-    <td class="col-sep"></td><td class="yoy-abs dn">20.992&nbsp;€</td><td class="yoy-abs dn">65.7%</td><td class="col-sep"></td><td class="budget-val">29.496&nbsp;€</td><td class="budget-delta under">18.544&nbsp;€</td><td class="budget-delta under">62.9%</td>
+    <td class="col-sep"></td><td class="yoy-abs up">+526&nbsp;€</td><td class="yoy-abs up">+5.0%</td><td class="col-sep"></td><td class="budget-val">9.832&nbsp;€</td><td class="budget-delta over">+1.120&nbsp;€</td><td class="budget-delta over">+11.4%</td>
   </tr><tr class="pl-row grand">
     <td></td>
     <td style="font-size:15px">EBT <span style="font-size:12px;color:rgba(255,255,255,.4);font-weight:400">(Earnings Before Tax)</span></td>
     <td class="num" style="color:#34d399;font-size:16px">312.628&nbsp;€</td><td class="num text-gray-400">27.6%</td>
     
-    <td class="col-sep"></td><td class="yoy-abs dn">69.842&nbsp;€</td><td class="yoy-abs dn">18.3%</td><td class="col-sep"></td><td class="budget-val">644.297&nbsp;€</td><td class="budget-delta under">331.669&nbsp;€</td><td class="budget-delta under">51.5%</td>
+    <td class="col-sep"></td><td class="yoy-abs up">+191.422&nbsp;€</td><td class="yoy-abs up">+157.9%</td><td class="col-sep"></td><td class="budget-val">171.125&nbsp;€</td><td class="budget-delta over">+141.503&nbsp;€</td><td class="budget-delta over">+82.7%</td>
   </tr></tbody>
         </table>
       </div>
@@ -1327,7 +1327,7 @@ let BUDGET_PL   = null;   // computed P&L from BUDGET_DATA (same shape as PL tot
 let buViewActive = false;
 let expandedSections = new Set([]);
 let añoFilter   = "2026";
-let monthFilter = [1,2,3,4,5,6,7,8,9,10,11,12];
+let monthFilter = [1,2,3,4];
 let chartMonthly = null;
 let chartLine = null;
 
